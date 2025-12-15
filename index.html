@@ -1,17 +1,438 @@
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>Meu site com Supabase</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="app.js" defer></script>
-  </head>
-  <body>
-    <h1>Lista de tarefas</h1>
-    <form id="todo-form">
-      <input id="todo-input" placeholder="Nova tarefa">
-      <button type="submit">Adicionar</button>
-    </form>
-    <ul id="todo-list"></ul>
-  </body>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Calculadora de Horas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0b0b0b;
+      --panel: #121212;
+      --border: #1e1e1e;
+      --text: #e9e9e9;
+      --muted: #9a9a9a;
+      --accent: #4f74ff;
+      --green: #2ecc71;
+      --blue: #3b82f6;
+      --orange: #f59e0b;
+      --red: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, Arial, sans-serif;
+    }
+    .container { max-width: 960px; margin: 28px auto; padding: 0 16px; }
+    h1 { margin: 0 0 16px; font-weight: 700; }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 18px;
+    }
+    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0e0e0e;
+      color: var(--text);
+      outline: none;
+    }
+    input::placeholder { color: #7a7a7a; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .col { flex: 1; min-width: 160px; }
+    .btn {
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #151515;
+      color: var(--text);
+      cursor: pointer;
+      transition: border-color .15s ease, transform .15s ease;
+    }
+    .btn:hover { transform: translateY(-1px); border-color: var(--accent); }
+    .btn.primary { background: var(--green); border-color: var(--green); color: #0b0b0b; }
+    .btn.blue { background: var(--blue); border-color: var(--blue); color: #0b0b0b; }
+    .muted { color: var(--muted); font-size: 13px; }
+
+    .chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 10px; border-radius: 999px;
+      background: #151515; border: 1px solid var(--border);
+      margin: 6px 6px 0 0; cursor: pointer;
+    }
+    .chip.selected { background: var(--green); color: #0b0b0b; border-color: var(--green); }
+    .chip .label { font-weight: 600; }
+    .chip .actions { display: inline-flex; gap: 6px; }
+    .mini-btn {
+      padding: 4px 8px; border-radius: 8px; font-size: 12px; border: 1px solid var(--border);
+      background: #1a1a1a; color: var(--text); cursor: pointer;
+    }
+    .mini-btn.orange { background: var(--orange); color: #0b0b0b; border-color: var(--orange); }
+    .mini-btn.red { background: var(--red); color: #0b0b0b; border-color: var(--red); }
+
+    table { width: 100%; border-collapse: collapse; overflow: hidden; border-radius: 12px; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: left; font-size: 14px; }
+    thead th { background: #141414; color: var(--muted); }
+    .badge {
+      display: inline-block; padding: 4px 10px; border-radius: 999px;
+      background: #1a1a1a; border: 1px solid var(--border); font-size: 12px;
+    }
+    .reg-btn {
+      cursor: pointer; color: var(--red); font-weight: 700; display: inline-block; margin: 2px 0;
+    }
+    .reg-btn:hover { text-decoration: underline; }
+    .error {
+      color: var(--red);
+      font-size: 13px;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Calculadora de horas</h1>
+    <p class="muted">Selecione um funcionário, adicione registros e clique nos registros para remover.</p>
+
+    <div class="card">
+      <h3>Funcionários</h3>
+      <div id="listaFuncionarios"></div>
+      <div class="row" style="margin-top:12px;">
+        <div class="col">
+          <label>Nome</label>
+          <input id="novoNome" type="text" placeholder="Ex.: Christian">
+        </div>
+        <div class="col">
+          <label>ID</label>
+          <input id="novoId" type="text" placeholder="Ex.: 101">
+        </div>
+        <div style="align-self: end;">
+          <button class="btn primary" id="btnAddFuncionario">Adicionar funcionário</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Adicionar horas</h3>
+      <div class="row">
+        <div class="col">
+          <label>Horas</label>
+          <input id="horas" type="number" min="0" placeholder="0">
+        </div>
+        <div class="col">
+          <label>Minutos</label>
+          <input id="minutos" type="number" min="0" max="59" placeholder="0">
+        </div>
+        <div class="col">
+          <label>Segundos</label>
+          <input id="segundos" type="number" min="0" max="59" placeholder="0">
+        </div>
+        <div style="align-self: end;">
+          <button class="btn primary" id="btnAddRegistro">Adicionar registro</button>
+        </div>
+        <div style="align-self: end;">
+          <button class="btn blue" id="btnOrdenar">Ordenar do maior para o menor</button>
+        </div>
+      </div>
+      <div id="msgErro" class="error" style="display:none;"></div>
+    </div>
+
+    <div class="card">
+      <h3>Resultados</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>ID</th>
+            <th>Total (h:m:s)</th>
+            <th>Total (segundos)</th>
+            <th>Registros</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      // Estado
+      let pessoas = {};
+      let funcionarios = [];
+      let funcionarioSelecionado = null;
+
+      // Utils
+      const chavePessoa = (nome, id) => `${nome}::${id}`;
+      const toSeconds = (h, m, s) => (h * 3600) + (m * 60) + s;
+      const fmtHMS = total => {
+        const h = Math.floor(total / 3600);
+        const m = Math.floor((total % 3600) / 60);
+        const s = total % 60;
+        return `${h}h ${m}m ${s}s`;
+      };
+
+      // Persistência
+      function salvarDados() {
+        localStorage.setItem("calculadoraHoras", JSON.stringify({ pessoas, funcionarios, funcionarioSelecionado }));
+      }
+      function carregarDados() {
+        try {
+          const raw = localStorage.getItem("calculadoraHoras");
+          if (!raw) return;
+          const obj = JSON.parse(raw);
+          pessoas = obj.pessoas || {};
+          funcionarios = obj.funcionarios || [];
+          funcionarioSelecionado = typeof obj.funcionarioSelecionado === "number" ? obj.funcionarioSelecionado : null;
+        } catch (e) {
+          console.warn("Falha ao carregar dados:", e);
+        }
+      }
+
+      // DOM refs
+      const listaFuncionariosEl = document.getElementById("listaFuncionarios");
+      const tabelaBodyEl = document.getElementById("tabelaBody");
+      const novoNomeEl = document.getElementById("novoNome");
+      const novoIdEl = document.getElementById("novoId");
+      const horasEl = document.getElementById("horas");
+      const minutosEl = document.getElementById("minutos");
+      const segundosEl = document.getElementById("segundos");
+      const msgErroEl = document.getElementById("msgErro");
+
+      // Renderizações
+      function renderFuncionarios() {
+        listaFuncionariosEl.innerHTML = "";
+        if (funcionarios.length === 0) {
+          const p = document.createElement("p");
+          p.className = "muted";
+          p.textContent = "Nenhum funcionário cadastrado.";
+          listaFuncionariosEl.appendChild(p);
+          return;
+        }
+        funcionarios.forEach((f, idx) => {
+          const chip = document.createElement("div");
+          chip.className = "chip" + (funcionarioSelecionado === idx ? " selected" : "");
+          chip.title = "Selecionar";
+          chip.addEventListener("click", () => selecionarFuncionario(idx));
+
+          const label = document.createElement("span");
+          label.className = "label";
+          label.textContent = `${f.nome} (ID: ${f.id})`;
+
+          const actions = document.createElement("span");
+          actions.className = "actions";
+
+          const editBtn = document.createElement("button");
+          editBtn.className = "mini-btn orange";
+          editBtn.textContent = "Editar";
+          editBtn.addEventListener("click", (e) => { e.stopPropagation(); editarFuncionario(idx); });
+
+          const delBtn = document.createElement("button");
+          delBtn.className = "mini-btn red";
+          delBtn.textContent = "Remover";
+          delBtn.addEventListener("click", (e) => { e.stopPropagation(); removerFuncionario(idx); });
+
+          actions.appendChild(editBtn);
+          actions.appendChild(delBtn);
+          chip.appendChild(label);
+          chip.appendChild(actions);
+          listaFuncionariosEl.appendChild(chip);
+        });
+      }
+
+      function renderTabela(lista = null) {
+        tabelaBodyEl.innerHTML = "";
+        const dados = lista || Object.values(pessoas);
+        if (dados.length === 0) {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td colspan="5" class="muted">Sem registros.</td>`;
+          tabelaBodyEl.appendChild(tr);
+          return;
+        }
+        dados.forEach(p => {
+          const tr = document.createElement("tr");
+
+          const tdNome = document.createElement("td"); tdNome.textContent = p.nome;
+          const tdId = document.createElement("td"); tdId.textContent = p.id;
+          const tdTotalFmt = document.createElement("td");
+          tdTotalFmt.innerHTML = `<span class="badge">${fmtHMS(p.total)}</span>`;
+          const tdTotal = document.createElement("td"); tdTotal.textContent = p.total;
+
+          const tdRegs = document.createElement("td");
+          p.registros.forEach((r, idx) => {
+            const span = document.createElement("span");
+            span.className = "reg-btn";
+            span.textContent = `${r.h}h ${r.m}m ${r.s}s`;
+            span.dataset.nome = p.nome;
+            span.dataset.id = p.id;
+            span.dataset.index = idx;
+            tdRegs.appendChild(span);
+            tdRegs.appendChild(document.createElement("br"));
+          });
+
+          tr.appendChild(tdNome);
+          tr.appendChild(tdId);
+          tr.appendChild(tdTotalFmt);
+          tr.appendChild(tdTotal);
+          tr.appendChild(tdRegs);
+          tabelaBodyEl.appendChild(tr);
+        });
+      }
+
+      // Delegação: remover registro ao clicar
+      document.addEventListener("click", (e) => {
+        const el = e.target;
+        if (el.classList.contains("reg-btn")) {
+          const nome = el.dataset.nome;
+          const id = el.dataset.id;
+          const index = parseInt(el.dataset.index, 10);
+          removerRegistro(nome, id, index);
+        }
+      });
+
+      // Ações
+      function selecionarFuncionario(idx) {
+        funcionarioSelecionado = idx;
+        renderFuncionarios();
+        salvarDados();
+      }
+
+      function adicionarFuncionario() {
+        const nome = (novoNomeEl.value || "").trim();
+        const id = (novoIdEl.value || "").trim();
+        if (!nome || !id) { alert("Informe nome e ID!"); return; }
+        const duplicado = funcionarios.some(f => f.nome === nome && f.id === id);
+        if (duplicado) { alert("Já existe um funcionário com este nome e ID."); return; }
+        funcionarios.push({ nome, id });
+        novoNomeEl.value = "";
+        novoIdEl.value = "";
+        renderFuncionarios();
+        salvarDados();
+      }
+
+      function editarFuncionario(idx) {
+        const atual = funcionarios[idx];
+        const novoNome = prompt("Novo nome:", atual.nome);
+        if (novoNome === null) return;
+        const novoId = prompt("Novo ID:", atual.id);
+        if (novoId === null) return;
+
+        const nNome = (novoNome || "").trim();
+        const nId = (novoId || "").trim();
+        if (!nNome || !nId) { alert("Nome e ID não podem ficar vazios."); return; }
+
+        const conflito = funcionarios.some((f, i) => i !== idx && f.nome === nNome && f.id === nId);
+        if (conflito) { alert("Já existe outro funcionário com este nome e ID."); return; }
+
+        const chaveAntiga = chavePessoa(atual.nome, atual.id);
+        const chaveNova = chavePessoa(nNome, nId);
+        if (chaveAntiga !== chaveNova && pessoas[chaveAntiga]) {
+          const dados = pessoas[chaveAntiga];
+          if (pessoas[chaveNova]) {
+            pessoas[chaveNova].total += dados.total;
+            pessoas[chaveNova].registros = pessoas[chaveNova].registros.concat(dados.registros);
+          } else {
+            pessoas[chaveNova] = { nome: nNome, id: nId, total: dados.total, registros: dados.registros.slice() };
+          }
+          delete pessoas[chaveAntiga];
+        }
+        funcionarios[idx] = { nome: nNome, id: nId };
+
+        renderFuncionarios();
+        renderTabela();
+        salvarDados();
+      }
+
+      function removerFuncionario(idx) {
+        const f = funcionarios[idx];
+        if (!confirm(`Remover ${f.nome} (ID: ${f.id})? Isto apagará seus registros.`)) return;
+        const chave = chavePessoa(f.nome, f.id);
+        delete pessoas[chave];
+        funcionarios.splice(idx, 1);
+        if (funcionarioSelecionado === idx) funcionarioSelecionado = null;
+        else if (typeof funcionarioSelecionado === "number" && funcionarioSelecionado > idx) funcionarioSelecionado -= 1;
+        renderFuncionarios();
+        renderTabela();
+        salvarDados();
+      }
+
+      function showError(msg) {
+        msgErroEl.textContent = msg;
+        msgErroEl.style.display = "block";
+        setTimeout(() => { msgErroEl.style.display = "none"; }, 3000);
+      }
+
+      function adicionarRegistro() {
+        if (funcionarioSelecionado === null) { showError("Selecione um funcionário primeiro!"); return; }
+        const h = parseInt(horasEl.value || "0", 10);
+        const m = parseInt(minutosEl.value || "0", 10);
+        const s = parseInt(segundosEl.value || "0", 10);
+
+        // Impede registro em branco
+        if (h === 0 && m === 0 && s === 0) { showError("Não é permitido adicionar um registro em branco."); return; }
+        // Impede inválidos
+        if ([h, m, s].some(v => Number.isNaN(v) || v < 0)) { showError("Horas, minutos e segundos devem ser válidos (>= 0)."); return; }
+        if (m > 59 || s > 59) { showError("Minutos e segundos devem estar entre 0 e 59."); return; }
+
+        const f = funcionarios[funcionarioSelecionado];
+        const total = toSeconds(h, m, s);
+        const chave = chavePessoa(f.nome, f.id);
+
+        if (!pessoas[chave]) pessoas[chave] = { nome: f.nome, id: f.id, total: 0, registros: [] };
+        pessoas[chave].total += total;
+        pessoas[chave].registros.push({ h, m, s, total });
+
+        horasEl.value = "";
+        minutosEl.value = "";
+        segundosEl.value = "";
+
+        renderTabela();
+        salvarDados();
+      }
+
+      function removerRegistro(nome, id, index) {
+        if (!confirm("Tem certeza que deseja remover este registro?")) return;
+        const chave = chavePessoa(nome, id);
+        const pessoa = pessoas[chave];
+        if (!pessoa) return;
+        const reg = pessoa.registros[index];
+        pessoa.total -= reg.total;
+        pessoa.registros.splice(index, 1);
+        if (pessoa.registros.length === 0) delete pessoas[chave];
+        renderTabela();
+        salvarDados();
+      }
+
+      function ordenarTabela() {
+        const lista = Object.values(pessoas).sort((a, b) => b.total - a.total);
+        renderTabela(lista);
+      }
+
+      // Eventos
+      document.getElementById("btnAddFuncionario").addEventListener("click", adicionarFuncionario);
+      document.getElementById("btnAddRegistro").addEventListener("click", adicionarRegistro);
+      document.getElementById("btnOrdenar").addEventListener("click", ordenarTabela);
+
+      // Delegação: clique nos registros
+      document.addEventListener("click", (e) => {
+        const el = e.target;
+        if (el.classList.contains("reg-btn")) {
+          const nome = el.dataset.nome;
+          const id = el.dataset.id;
+          const index = parseInt(el.dataset.index, 10);
+          removerRegistro(nome, id, index);
+        }
+      });
+
+      // Init
+      carregarDados();
+      renderFuncionarios();
+      renderTabela();
+    });
+  </script>
+</body>
 </html>
