@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <title>Calculadora de Horas (Supabase)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- SDK do Supabase deve carregar antes do seu script -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --bg: #0b0b0b; --panel: #121212; --border: #1e1e1e;
@@ -11,7 +13,7 @@
       --green: #2ecc71; --blue: #3b82f6; --orange: #f59e0b; --red: #ef4444;
     }
     * { box-sizing: border-box; }
-    body { margin:0; background:var(--bg); color:var(--text); font-family:Inter,Arial,sans-serif; }
+    body { margin:0; background:var(--bg); color:var(--text); font-family: Inter, Arial, sans-serif; }
     .container { max-width:960px; margin:28px auto; padding:0 16px; }
     h1 { margin:0 0 16px; font-weight:700; }
     .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:18px; }
@@ -20,7 +22,7 @@
     input::placeholder { color:#7a7a7a; }
     .row { display:flex; gap:10px; flex-wrap:wrap; }
     .col { flex:1; min-width:160px; }
-    .btn { padding:10px 14px; border-radius:10px; border:1px solid var(--border); background:#151515; color:#fff; cursor:pointer; transition:border-color .15s ease, transform .15s ease; }
+    .btn { padding:10px 14px; border-radius:10px; border:1px solid var(--border); background:#151515; color:var(--text); cursor:pointer; transition:border-color .15s ease, transform .15s ease; }
     .btn:hover { transform:translateY(-1px); border-color:var(--accent); }
     .btn.primary { background:var(--green); border-color:var(--green); color:#0b0b0b; }
     .btn.blue { background:var(--blue); border-color:var(--blue); color:#0b0b0b; }
@@ -31,7 +33,7 @@
     .chip.selected { background:var(--green); color:#0b0b0b; border-color:var(--green); }
     .chip .label { font-weight:600; }
     .chip .actions { display:inline-flex; gap:6px; margin-left:8px; }
-    .mini-btn { padding:4px 8px; border-radius:8px; font-size:12px; border:1px solid var(--border); background:#1a1a1a; color:#fff; cursor:pointer; }
+    .mini-btn { padding:4px 8px; border-radius:8px; font-size:12px; border:1px solid var(--border); background:#1a1a1a; color:var(--text); cursor:pointer; }
     .mini-btn.orange { background:var(--orange); color:#0b0b0b; border-color:var(--orange); }
     .mini-btn.red { background:var(--red); color:#0b0b0b; border-color:var(--red); }
     table { width:100%; border-collapse:collapse; overflow:hidden; border-radius:12px; }
@@ -64,6 +66,7 @@
           <button class="btn primary" id="btnAddFuncionario">Adicionar funcionário</button>
         </div>
       </div>
+      <p class="muted" style="margin-top:8px;">Use os botões de cada chip para editar ou limpar registros.</p>
     </div>
 
     <div class="card">
@@ -95,12 +98,12 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    // Credenciais Supabase
-    const supabaseUrl = "https://pldamguukjeuakrvfbzf.supabase.co";
-    const supabaseKey = "sb_publishable_UybNTjqz8fdbDLFhxJvO5Q_78P0AM6Y";
-    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+    // Cliente Supabase (usa a global window.supabase do SDK carregado no head)
+    const supabase = window.supabase.createClient(
+      "https://pldamguukjeuakrvfbzf.supabase.co",
+      "sb_publishable_UybNTjqz8fdbDLFhxJvO5Q_78P0AM6Y"
+    );
 
     // Estado
     let funcionarios = [];
@@ -108,103 +111,89 @@
     let funcionarioSelecionado = null;
 
     // Utils
-    const chavePessoa = (nome, id) => `${nome}::${id}`;
-    const toSeconds = (h, m, s) => (h * 3600) + (m * 60) + s;
-    const fmtHMS = total => {
-      const h = Math.floor(total / 3600);
-      const m = Math.floor((total % 3600) / 60);
-      const s = total % 60;
-      return `${h}h ${m}m ${s}s`;
-    };
+    const chavePessoa = (nome,id)=>`${nome}::${id}`;
+    const toSeconds=(h,m,s)=>(h*3600)+(m*60)+s;
+    const fmtHMS=total=>`${Math.floor(total/3600)}h ${Math.floor((total%3600)/60)}m ${total%60}s`;
 
     // DOM refs
-    const listaFuncionariosEl = document.getElementById("listaFuncionarios");
-    const tabelaBodyEl = document.getElementById("tabelaBody");
-    const novoNomeEl = document.getElementById("novoNome");
-    const novoIdEl = document.getElementById("novoId");
-    const horasEl = document.getElementById("horas");
-    const minutosEl = document.getElementById("minutos");
-    const segundosEl = document.getElementById("segundos");
-    const msgErroEl = document.getElementById("msgErro");
+    const listaFuncionariosEl=document.getElementById("listaFuncionarios");
+    const tabelaBodyEl=document.getElementById("tabelaBody");
+    const novoNomeEl=document.getElementById("novoNome");
+    const novoIdEl=document.getElementById("novoId");
+    const horasEl=document.getElementById("horas");
+    const minutosEl=document.getElementById("minutos");
+    const segundosEl=document.getElementById("segundos");
+    const msgErroEl=document.getElementById("msgErro");
 
     // UI helpers
-    function showError(msg) {
-      msgErroEl.textContent = msg;
-      msgErroEl.style.display = "block";
-      setTimeout(() => { msgErroEl.style.display = "none"; }, 3000);
-    }
+    function showError(msg){msgErroEl.textContent=msg;msgErroEl.style.display="block";setTimeout(()=>{msgErroEl.style.display="none";},3000);}
 
-    function renderFuncionarios() {
-      listaFuncionariosEl.innerHTML = "";
-      if (funcionarios.length === 0) {
-        const p = document.createElement("p");
-        p.className = "muted";
-        p.textContent = "Nenhum funcionário cadastrado.";
-        listaFuncionariosEl.appendChild(p);
+    function renderFuncionarios(){
+      listaFuncionariosEl.innerHTML="";
+      if(funcionarios.length===0){
+        listaFuncionariosEl.innerHTML="<p class='muted'>Nenhum funcionário cadastrado.</p>";
         return;
       }
-      funcionarios.forEach((f, idx) => {
-        const chip = document.createElement("div");
-        chip.className = "chip" + (funcionarioSelecionado === idx ? " selected" : "");
-        chip.title = "Selecionar";
-        chip.addEventListener("click", () => selecionarFuncionario(idx));
+      funcionarios.forEach((f,idx)=>{
+        const chip=document.createElement("div");
+        chip.className="chip"+(funcionarioSelecionado===idx?" selected":"");
+        chip.title="Selecionar";
+        chip.addEventListener("click",()=>selecionarFuncionario(idx));
 
-        const label = document.createElement("span");
-        label.className = "label";
-        label.textContent = `${f.nome} (ID: ${f.id})`;
+        const label=document.createElement("span");
+        label.className="label";
+        label.textContent=`${f.nome} (ID: ${f.id})`;
 
-        const actions = document.createElement("span");
-        actions.className = "actions";
+        const actions=document.createElement("span");
+        actions.className="actions";
 
-        const editBtn = document.createElement("button");
-        editBtn.className = "mini-btn orange";
-        editBtn.textContent = "Editar";
-        editBtn.addEventListener("click", (e) => { e.stopPropagation(); editarFuncionario(idx); });
+        const editBtn=document.createElement("button");
+        editBtn.className="mini-btn orange";
+        editBtn.textContent="Editar";
+        editBtn.addEventListener("click",(e)=>{e.stopPropagation();editarFuncionario(idx);});
 
-        const clearBtn = document.createElement("button");
-        clearBtn.className = "mini-btn";
-        clearBtn.textContent = "Limpar registros";
-        clearBtn.addEventListener("click", (e) => { e.stopPropagation(); limparRegistrosFuncionario(f.id, f.nome); });
+        const clearBtn=document.createElement("button");
+        clearBtn.className="mini-btn";
+        clearBtn.textContent="Limpar registros";
+        clearBtn.addEventListener("click",(e)=>{e.stopPropagation();limparRegistrosFuncionario(f.id,f.nome);});
 
-        const delBtn = document.createElement("button");
-        delBtn.className = "mini-btn red";
-        delBtn.textContent = "Remover";
-        delBtn.addEventListener("click", (e) => { e.stopPropagation(); removerFuncionario(idx); });
+        const delBtn=document.createElement("button");
+        delBtn.className="mini-btn red";
+        delBtn.textContent="Remover";
+        delBtn.addEventListener("click",(e)=>{e.stopPropagation();removerFuncionario(idx);});
 
         actions.appendChild(editBtn);
         actions.appendChild(clearBtn);
         actions.appendChild(delBtn);
-
         chip.appendChild(label);
         chip.appendChild(actions);
         listaFuncionariosEl.appendChild(chip);
       });
     }
 
-    function renderTabela(lista = null) {
-      tabelaBodyEl.innerHTML = "";
+    function renderTabela(lista=null){
+      tabelaBodyEl.innerHTML="";
       const dados = lista || Object.values(pessoas);
-      if (dados.length === 0) {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td colspan="5" class="muted">Sem registros.</td>`;
+      if(dados.length===0){
+        const tr=document.createElement("tr");
+        tr.innerHTML=`<td colspan="5" class="muted">Sem registros.</td>`;
         tabelaBodyEl.appendChild(tr);
         return;
       }
-      dados.forEach(p => {
-        const tr = document.createElement("tr");
+      dados.forEach(p=>{
+        const tr=document.createElement("tr");
 
-        const tdNome = document.createElement("td"); tdNome.textContent = p.nome;
-        const tdId = document.createElement("td"); tdId.textContent = p.id;
-        const tdTotalFmt = document.createElement("td");
-        tdTotalFmt.innerHTML = `<span class="badge">${fmtHMS(p.total)}</span>`;
-        const tdTotal = document.createElement("td"); tdTotal.textContent = p.total;
+        const tdNome=document.createElement("td"); tdNome.textContent=p.nome;
+        const tdId=document.createElement("td"); tdId.textContent=p.id;
+        const tdTotalFmt=document.createElement("td"); tdTotalFmt.innerHTML=`<span class="badge">${fmtHMS(p.total)}</span>`;
+        const tdTotal=document.createElement("td"); tdTotal.textContent=p.total;
 
-        const tdRegs = document.createElement("td");
-        p.registros.forEach(r => {
-          const span = document.createElement("span");
-          span.className = "reg-btn";
-          span.textContent = `${r.h}h ${r.m}m ${r.s}s`;
-          span.dataset.registroId = r.id;
+        const tdRegs=document.createElement("td");
+        p.registros.forEach(r=>{
+          const span=document.createElement("span");
+          span.className="reg-btn";
+          span.textContent=`${r.h}h ${r.m}m ${r.s}s`;
+          span.dataset.registroId=r.id;
           tdRegs.appendChild(span);
           tdRegs.appendChild(document.createElement("br"));
         });
@@ -218,194 +207,142 @@
       });
     }
 
-    // Delegação: remover registro individual ao clicar
-    document.addEventListener("click", async (e) => {
-      const el = e.target;
-      if (el.classList.contains("reg-btn")) {
-        const idRegistro = el.dataset.registroId;
-        if (!idRegistro) return;
-        if (!confirm("Tem certeza que deseja remover este registro?")) return;
+    // Remoção individual de registro ao clicar
+    document.addEventListener("click", async (e)=>{
+      const el=e.target;
+      if(el.classList.contains("reg-btn")){
+        const idRegistro=el.dataset.registroId;
+        if(!idRegistro) return;
+        if(!confirm("Tem certeza que deseja remover este registro?")) return;
         await removerRegistro(idRegistro);
       }
     });
 
-    // Supabase CRUD
-    async function carregarFuncionarios() {
-      const { data, error } = await supabase
-        .from("funcionarios")
-        .select("*")
-        .order("nome", { ascending: true });
-      if (error) { console.error(error); showError("Erro ao carregar funcionários."); return; }
+    // CRUD Supabase
+    async function carregarFuncionarios(){
+      const { data, error } = await supabase.from("funcionarios").select("*").order("nome",{ascending:true});
+      if(error){console.error(error);showError("Erro ao carregar funcionários.");return;}
       funcionarios = data || [];
       renderFuncionarios();
     }
 
-    async function carregarRegistros() {
-      const { data, error } = await supabase
-        .from("registros")
-        .select("*")
-        .order("id", { ascending: true });
-      if (error) { console.error(error); showError("Erro ao carregar registros."); return; }
-
-      const mapFunc = new Map(funcionarios.map(f => [f.id, f.nome]));
-
+    async function carregarRegistros(){
+      const { data, error } = await supabase.from("registros").select("*").order("id",{ascending:true});
+      if(error){console.error(error);showError("Erro ao carregar registros.");return;}
+      const mapFunc = new Map(funcionarios.map(f=>[f.id,f.nome]));
       pessoas = {};
-      (data || []).forEach(r => {
+      (data||[]).forEach(r=>{
         const nome = mapFunc.get(r.funcionario_id) || "(Desconhecido)";
         const id = r.funcionario_id;
-        const chave = chavePessoa(nome, id);
-        if (!pessoas[chave]) pessoas[chave] = { nome, id, total: 0, registros: [] };
+        const chave = chavePessoa(nome,id);
+        if(!pessoas[chave]) pessoas[chave] = { nome, id, total: 0, registros: [] };
         pessoas[chave].total += r.total;
-        pessoas[chave].registros.push({
-          id: r.id,
-          h: r.horas,
-          m: r.minutos,
-          s: r.segundos,
-          total: r.total
-        });
+        pessoas[chave].registros.push({ id:r.id, h:r.horas, m:r.minutos, s:r.segundos, total:r.total });
       });
-
       renderTabela();
     }
 
-    async function selecionarFuncionario(idx) {
-      funcionarioSelecionado = idx;
+    async function selecionarFuncionario(idx){
+      funcionarioSelecionado=idx;
       renderFuncionarios();
     }
 
-    async function adicionarFuncionario() {
-      const nome = (novoNomeEl.value || "").trim();
-      const id = (novoIdEl.value || "").trim();
-      if (!nome || !id) { alert("Informe nome e ID!"); return; }
+    async function adicionarFuncionario(){
+      const nome=(novoNomeEl.value||"").trim();
+      const id=(novoIdEl.value||"").trim();
+      if(!nome || !id){ alert("Informe nome e ID!"); return; }
 
-      const { data: existe, error: errCheck } = await supabase
-        .from("funcionarios")
-        .select("id")
-        .eq("id", id)
-        .limit(1);
+      const { data: existe, error: errCheck } = await supabase.from("funcionarios").select("id").eq("id",id).limit(1);
+      if(errCheck){ showError("Falha ao verificar duplicidade."); return; }
+      if(existe && existe.length>0){ alert("Já existe um funcionário com este ID."); return; }
 
-      if (errCheck) { showError("Falha ao verificar duplicidade."); return; }
-      if (existe && existe.length > 0) { alert("Já existe um funcionário com este ID."); return; }
+      const { error } = await supabase.from("funcionarios").insert([{ id, nome }]);
+      if(error){ alert("Erro ao salvar: " + error.message); return; }
 
-      const { error } = await supabase
-        .from("funcionarios")
-        .insert([{ id, nome }]);
-      if (error) { alert("Erro ao salvar: " + error.message); return; }
-
-      novoNomeEl.value = "";
-      novoIdEl.value = "";
+      novoNomeEl.value=""; novoIdEl.value="";
       await carregarFuncionarios();
       await carregarRegistros();
     }
 
     // Editar nome e ID com migração dos registros
-    async function editarFuncionario(idx) {
+    async function editarFuncionario(idx){
       const atual = funcionarios[idx];
       const novoNome = prompt("Novo nome:", atual.nome);
-      if (novoNome === null) return;
+      if(novoNome===null) return;
       const novoId = prompt("Novo ID:", atual.id);
-      if (novoId === null) return;
+      if(novoId===null) return;
 
-      const nNome = (novoNome || "").trim();
-      const nId = (novoId || "").trim();
-      if (!nNome || !nId) { alert("Nome e ID não podem ficar vazios."); return; }
+      const nNome=(novoNome||"").trim();
+      const nId=(novoId||"").trim();
+      if(!nNome || !nId){ alert("Nome e ID não podem ficar vazios."); return; }
 
-      if (nId !== atual.id) {
-        const { data: existe, error: errCheck } = await supabase
-          .from("funcionarios")
-          .select("id")
-          .eq("id", nId)
-          .limit(1);
-        if (errCheck) { showError("Falha ao verificar duplicidade."); return; }
-        if (existe && existe.length > 0) { alert("Já existe outro funcionário com este ID."); return; }
+      if(nId !== atual.id){
+        const { data: existe, error: errCheck } = await supabase.from("funcionarios").select("id").eq("id",nId).limit(1);
+        if(errCheck){ showError("Falha ao verificar duplicidade."); return; }
+        if(existe && existe.length>0){ alert("Já existe outro funcionário com este ID."); return; }
       }
 
-      // Atualiza funcionário
-      const { error: errFunc } = await supabase
-        .from("funcionarios")
-        .update({ nome: nNome, id: nId })
-        .eq("id", atual.id);
+      const { error: errFunc } = await supabase.from("funcionarios").update({ nome: nNome, id: nId }).eq("id", atual.id);
+      if(errFunc){ alert("Erro ao atualizar funcionário: " + errFunc.message); return; }
 
-      if (errFunc) { alert("Erro ao atualizar funcionário: " + errFunc.message); return; }
-
-      // Migra registros se o ID mudou
-      if (nId !== atual.id) {
-        const { error: errRegs } = await supabase
-          .from("registros")
-          .update({ funcionario_id: nId })
-          .eq("funcionario_id", atual.id);
-
-        if (errRegs) { alert("Erro ao migrar registros: " + errRegs.message); return; }
+      if(nId !== atual.id){
+        const { error: errRegs } = await supabase.from("registros").update({ funcionario_id: nId }).eq("funcionario_id", atual.id);
+        if(errRegs){ alert("Erro ao migrar registros: " + errRegs.message); return; }
       }
 
       await carregarFuncionarios();
       await carregarRegistros();
     }
 
-    async function removerFuncionario(idx) {
+    async function removerFuncionario(idx){
       const f = funcionarios[idx];
-      if (!confirm(`Remover ${f.nome} (ID: ${f.id})? Isto apagará seus registros.`)) return;
+      if(!confirm(`Remover ${f.nome} (ID: ${f.id})? Isto apagará seus registros.`)) return;
 
-      const { error } = await supabase
-        .from("funcionarios")
-        .delete()
-        .eq("id", f.id);
+      const { error } = await supabase.from("funcionarios").delete().eq("id", f.id);
+      if(error){ alert("Erro ao remover funcionário: " + error.message); return; }
 
-      if (error) { alert("Erro ao remover funcionário: " + error.message); return; }
-
-      if (funcionarioSelecionado === idx) funcionarioSelecionado = null;
-      else if (typeof funcionarioSelecionado === "number" && funcionarioSelecionado > idx) funcionarioSelecionado -= 1;
+      if(funcionarioSelecionado===idx) funcionarioSelecionado=null;
+      else if(typeof funcionarioSelecionado==="number" && funcionarioSelecionado>idx) funcionarioSelecionado-=1;
 
       await carregarFuncionarios();
       await carregarRegistros();
     }
 
-    async function adicionarRegistro() {
-      if (funcionarioSelecionado === null) { showError("Selecione um funcionário primeiro!"); return; }
-      const h = parseInt(horasEl.value || "0", 10);
-      const m = parseInt(minutosEl.value || "0", 10);
-      const s = parseInt(segundosEl.value || "0", 10);
+    async function adicionarRegistro(){
+      if(funcionarioSelecionado===null){ showError("Selecione um funcionário primeiro!"); return; }
+      const h=parseInt(horasEl.value||"0",10);
+      const m=parseInt(minutosEl.value||"0",10);
+      const s=parseInt(segundosEl.value||"0",10);
 
-      if (h === 0 && m === 0 && s === 0) { showError("Não é permitido adicionar um registro em branco."); return; }
-      if ([h, m, s].some(v => Number.isNaN(v) || v < 0)) { showError("Horas, minutos e segundos devem ser válidos (>= 0)."); return; }
-      if (m > 59 || s > 59) { showError("Minutos e segundos devem estar entre 0 e 59."); return; }
+      if(h===0 && m===0 && s===0){ showError("Não é permitido adicionar um registro em branco."); return; }
+      if([h,m,s].some(v=>Number.isNaN(v)||v<0)){ showError("Horas, minutos e segundos devem ser válidos (>= 0)."); return; }
+      if(m>59 || s>59){ showError("Minutos e segundos devem estar entre 0 e 59."); return; }
 
       const f = funcionarios[funcionarioSelecionado];
-      const total = toSeconds(h, m, s);
+      const total = toSeconds(h,m,s);
 
-      const { error } = await supabase
-        .from("registros")
-        .insert([{ funcionario_id: f.id, horas: h, minutos: m, segundos: s, total }]);
+      const { error } = await supabase.from("registros").insert([{ funcionario_id: f.id, horas: h, minutos: m, segundos: s, total }]);
+      if(error){ showError("Erro ao salvar registro: " + error.message); return; }
 
-      if (error) { showError("Erro ao salvar registro: " + error.message); return; }
-
-      horasEl.value = "";
-      minutosEl.value = "";
-      segundosEl.value = "";
+      horasEl.value=""; minutosEl.value=""; segundosEl.value="";
       await carregarRegistros();
     }
 
-    async function removerRegistro(idRegistro) {
-      const { error } = await supabase
-        .from("registros")
-        .delete()
-        .eq("id", idRegistro);
-      if (error) { alert("Erro ao remover registro: " + error.message); return; }
+    async function removerRegistro(idRegistro){
+      const { error } = await supabase.from("registros").delete().eq("id", idRegistro);
+      if(error){ alert("Erro ao remover registro: " + error.message); return; }
       await carregarRegistros();
     }
 
-    async function limparRegistrosFuncionario(funcionarioId, nome) {
-      if (!confirm(`Deseja limpar TODOS os registros de ${nome} (ID: ${funcionarioId})? Esta ação não pode ser desfeita.`)) return;
-      const { error } = await supabase
-        .from("registros")
-        .delete()
-        .eq("funcionario_id", funcionarioId);
-      if (error) { alert("Erro ao limpar registros: " + error.message); return; }
+    async function limparRegistrosFuncionario(funcionarioId, nome){
+      if(!confirm(`Deseja limpar TODOS os registros de ${nome} (ID: ${funcionarioId})? Esta ação não pode ser desfeita.`)) return;
+      const { error } = await supabase.from("registros").delete().eq("funcionario_id", funcionarioId);
+      if(error){ alert("Erro ao limpar registros: " + error.message); return; }
       await carregarRegistros();
     }
 
-    function ordenarTabela() {
-      const lista = Object.values(pessoas).sort((a, b) => b.total - a.total);
+    function ordenarTabela(){
+      const lista = Object.values(pessoas).sort((a,b)=>b.total - a.total);
       renderTabela(lista);
     }
 
@@ -415,7 +352,7 @@
     document.getElementById("btnOrdenar").addEventListener("click", ordenarTabela);
 
     // Init
-    document.addEventListener("DOMContentLoaded", async () => {
+    document.addEventListener("DOMContentLoaded", async ()=>{
       await carregarFuncionarios();
       await carregarRegistros();
     });
