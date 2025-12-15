@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <title>Calculadora de Horas (Supabase)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- SDK do Supabase deve carregar antes do seu script -->
+  <!-- Carregue o SDK do Supabase antes do seu script -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
@@ -66,17 +66,34 @@
           <button class="btn primary" id="btnAddFuncionario">Adicionar funcionário</button>
         </div>
       </div>
-      <p class="muted" style="margin-top:8px;">Use os botões de cada chip para editar ou limpar registros.</p>
+      <div class="row" style="margin-top:12px;">
+        <div class="col" style="flex:0 0 auto;">
+          <button class="btn red" id="btnLimparTodos">Limpar registros de TODOS os funcionários</button>
+        </div>
+      </div>
     </div>
 
     <div class="card">
       <h3>Adicionar horas</h3>
       <div class="row">
-        <div class="col"><label>Horas</label><input id="horas" type="number" min="0" placeholder="0"></div>
-        <div class="col"><label>Minutos</label><input id="minutos" type="number" min="0" max="59" placeholder="0"></div>
-        <div class="col"><label>Segundos</label><input id="segundos" type="number" min="0" max="59" placeholder="0"></div>
-        <div style="align-self:end;"><button class="btn primary" id="btnAddRegistro">Adicionar registro</button></div>
-        <div style="align-self:end;"><button class="btn blue" id="btnOrdenar">Ordenar do maior para o menor</button></div>
+        <div class="col">
+          <label>Horas</label>
+          <input id="horas" type="number" min="0" placeholder="0">
+        </div>
+        <div class="col">
+          <label>Minutos</label>
+          <input id="minutos" type="number" min="0" max="59" placeholder="0">
+        </div>
+        <div class="col">
+          <label>Segundos</label>
+          <input id="segundos" type="number" min="0" max="59" placeholder="0">
+        </div>
+        <div style="align-self:end;">
+          <button class="btn primary" id="btnAddRegistro">Adicionar registro</button>
+        </div>
+        <div style="align-self:end;">
+          <button class="btn blue" id="btnOrdenar">Ordenar do maior para o menor</button>
+        </div>
       </div>
       <div id="msgErro" class="error" style="display:none;"></div>
     </div>
@@ -341,6 +358,15 @@
       await carregarRegistros();
     }
 
+    // Limpar registros de TODOS os funcionários
+    async function limparRegistrosTodos(){
+      if(!confirm("Deseja limpar TODOS os registros de TODOS os funcionários? Esta ação não pode ser desfeita.")) return;
+      // Deleta todos os registros (usa neq para evitar queries vazias em alguns ambientes)
+      const { error } = await supabase.from("registros").delete().neq("id", 0);
+      if(error){ alert("Erro ao limpar todos os registros: " + error.message); return; }
+      await carregarRegistros();
+    }
+
     function ordenarTabela(){
       const lista = Object.values(pessoas).sort((a,b)=>b.total - a.total);
       renderTabela(lista);
@@ -350,6 +376,7 @@
     document.getElementById("btnAddFuncionario").addEventListener("click", adicionarFuncionario);
     document.getElementById("btnAddRegistro").addEventListener("click", adicionarRegistro);
     document.getElementById("btnOrdenar").addEventListener("click", ordenarTabela);
+    document.getElementById("btnLimparTodos").addEventListener("click", limparRegistrosTodos);
 
     // Init
     document.addEventListener("DOMContentLoaded", async ()=>{
