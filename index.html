@@ -1,4 +1,658 @@
+RGPLAY
+rgplay.
+•
+"Não existe trabalho ruim, o ruim é ter que trabalhar"
+
+Naschtok
+ iniciou uma chamada que durou 11 minutos. — 17:22
+Naschtok — 17:30
+resolver um pepino aqui do trabalho
+já volto kkkk
+RGPLAY
+
+ — 17:30
+ok
+github pages e o que mais '?
+que eu viajei
+Naschtok — 17:31
+banco de dados do supabase
+deixa claro que precisa dos códigos e passo a passo da configuração
+ele vai te passar os códgiso sql do supabase pra configurar o banco e os arquivos html, java e css se usar
+Naschtok
+ iniciou uma chamada. — 17:55
+RGPLAY
+
+ — 18:09
+https://christianraphael39-coder.github.io/-CalculadoraLaMarina/
+Naschtok — 18:13
+-- Tabela de funcionários
+create table if not exists employees (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  passport_number text not null,
+  created_at timestamp with time zone default now()
+);
+
+-- Índice opcional para busca por passaporte
+create index if not exists employees_passport_idx on employees (passport_number);
+
+-- Tabela de horas trabalhadas
+create table if not exists work_logs (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id) on delete cascade,
+  work_date date not null,
+  start_time time not null,
+  end_time time not null,
+  total_hours numeric(6,2) not null,
+  created_at timestamp with time zone default now()
+);
+
+-- Índice para paginação por data de criação
+create index if not exists work_logs_created_at_idx on work_logs (created_at);
+
+-- Políticas de acesso (RLS)
+-- Ative RLS nas duas tabelas e permita operações públicas com restrições básicas.
+-- Atenção: Para sites públicos, use chaves e políticas com consciência.
+alter table employees enable row level security;
+alter table work_logs enable row level security;
+
+-- Políticas simples de leitura/escrita (exemplo para protótipo público)
+create policy "Public read employees" on employees
+  for select using (true);
+
+create policy "Public insert employees" on employees
+  for insert with check (true);
+
+create policy "Public delete employees" on employees
+  for delete using (true);
+
+create policy "Public read work_logs" on work_logs
+  for select using (true);
+
+create policy "Public insert work_logs" on work_logs
+  for insert with check (true);
+
+create policy "Public delete work_logs" on work_logs
+  for delete using (true);
 <!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Registro de Funcionários & Horas</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --muted: #9ca3af;
+      --text: #e5e7eb;
+      --accent: #22c55e;
+      --danger: #ef4444;
+      --border: #1f2937;
+      --link: #60a5fa;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg, #0b1020 0%, #0f172a 100%);
+      color: var(--text);
+    }
+    header {
+      padding: 24px; border-bottom: 1px solid var(--border); background: rgba(17,24,39,0.7); backdrop-filter: blur(6px);
+    }
+    header h1 { margin: 0; font-size: 20px; }
+    header small { color: var(--muted); }
+    main { max-width: 1000px; margin: 0 auto; padding: 24px; display: grid; gap: 24px; }
+    section {
+      background: rgba(17,24,39,0.7); border: 1px solid var(--border); border-radius: 12px; padding: 16px;
+    }
+    h2 { margin: 0 0 12px; font-size: 18px; }
+    form { display: grid; gap: 12px; margin: 12px 0; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    label { display: grid; gap: 6px; font-size: 14px; color: var(--muted); }
+    input, select, button {
+      padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border);
+      background: #0b1220; color: var(--text);
+    }
+    input:focus, select:focus { outline: 2px solid #1d4ed8; border-color: #1d4ed8; }
+    button.primary { background: #14532d; border-color: #14532d; }
+    button.primary:hover { background: #166534; }
+    button.danger { background: #7f1d1d; border-color: #7f1d1d; }
+    button.danger:hover { background: #991b1b; }
+    button.ghost { background: transparent; }
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border); font-size: 14px; }
+    th { color: var(--muted); font-weight: 600; }
+    .badge { display: inline-block; padding: 4px 8px; border-radius: 999px; background: #1f2937; color: var(--text); font-size: 12px; }
+    .muted { color: var(--muted); }
+    .footer { color: var(--muted); font-size: 12px; }
+    .pagination { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-top: 12px; }
+    .error { color: #fecaca; }
+    .success { color: #bbf7d0; }
+    .loading { color: var(--muted); }
+    .card { border: 1px dashed var(--border); border-radius: 8px; padding: 12px; }
+    .spacer { height: 8px; }
+    .link { color: var(--link); text-decoration: none; }
+    .link:hover { text-decoration: underline; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Registro de Funcionários & Horas</h1>
+    <small>Persistente com Supabase • Hospedável no GitHub Pages</small>
+  </header>
+
+  <main>
+    <section id="config">
+      <h2>Configuração do Supabase</h2>
+      <div class="card">
+        <p class="muted">
+          Substitua as constantes SUPABASE_URL e SUPABASE_ANON_KEY no código abaixo pelos valores do seu projeto.
+          Em produção, use políticas RLS adequadas. Para protótipo público, monitore uso e rotacione chaves se necessário.
+        </p>
+      </div>
+    </section>
+
+    <section id="employees-section">
+      <h2>Funcionários</h2>
+      <form id="employee-form" autocomplete="on">
+        <div class="grid-2">
+          <label>
+            Nome
+            <input type="text" id="emp-name" placeholder="Ex.: Maria Silva" required />
+          </label>
+          <label>
+            Nº do passaporte
+            <input type="text" id="emp-passport" placeholder="Ex.: AB123456" required />
+          </label>
+        </div>
+        <div class="row">
+          <button type="submit" class="primary">Adicionar funcionário</button>
+          <span id="employee-feedback" class="muted"></span>
+        </div>
+      </form>
+... (375 linhas)
+Recolher
+message.txt
+17 KB
+﻿
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Registro de Funcionários & Horas</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --muted: #9ca3af;
+      --text: #e5e7eb;
+      --accent: #22c55e;
+      --danger: #ef4444;
+      --border: #1f2937;
+      --link: #60a5fa;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg, #0b1020 0%, #0f172a 100%);
+      color: var(--text);
+    }
+    header {
+      padding: 24px; border-bottom: 1px solid var(--border); background: rgba(17,24,39,0.7); backdrop-filter: blur(6px);
+    }
+    header h1 { margin: 0; font-size: 20px; }
+    header small { color: var(--muted); }
+    main { max-width: 1000px; margin: 0 auto; padding: 24px; display: grid; gap: 24px; }
+    section {
+      background: rgba(17,24,39,0.7); border: 1px solid var(--border); border-radius: 12px; padding: 16px;
+    }
+    h2 { margin: 0 0 12px; font-size: 18px; }
+    form { display: grid; gap: 12px; margin: 12px 0; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    label { display: grid; gap: 6px; font-size: 14px; color: var(--muted); }
+    input, select, button {
+      padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border);
+      background: #0b1220; color: var(--text);
+    }
+    input:focus, select:focus { outline: 2px solid #1d4ed8; border-color: #1d4ed8; }
+    button.primary { background: #14532d; border-color: #14532d; }
+    button.primary:hover { background: #166534; }
+    button.danger { background: #7f1d1d; border-color: #7f1d1d; }
+    button.danger:hover { background: #991b1b; }
+    button.ghost { background: transparent; }
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border); font-size: 14px; }
+    th { color: var(--muted); font-weight: 600; }
+    .badge { display: inline-block; padding: 4px 8px; border-radius: 999px; background: #1f2937; color: var(--text); font-size: 12px; }
+    .muted { color: var(--muted); }
+    .footer { color: var(--muted); font-size: 12px; }
+    .pagination { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-top: 12px; }
+    .error { color: #fecaca; }
+    .success { color: #bbf7d0; }
+    .loading { color: var(--muted); }
+    .card { border: 1px dashed var(--border); border-radius: 8px; padding: 12px; }
+    .spacer { height: 8px; }
+    .link { color: var(--link); text-decoration: none; }
+    .link:hover { text-decoration: underline; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Registro de Funcionários & Horas</h1>
+    <small>Persistente com Supabase • Hospedável no GitHub Pages</small>
+  </header>
+
+  <main>
+    <section id="config">
+      <h2>Configuração do Supabase</h2>
+      <div class="card">
+        <p class="muted">
+          Substitua as constantes SUPABASE_URL e SUPABASE_ANON_KEY no código abaixo pelos valores do seu projeto.
+          Em produção, use políticas RLS adequadas. Para protótipo público, monitore uso e rotacione chaves se necessário.
+        </p>
+      </div>
+    </section>
+
+    <section id="employees-section">
+      <h2>Funcionários</h2>
+      <form id="employee-form" autocomplete="on">
+        <div class="grid-2">
+          <label>
+            Nome
+            <input type="text" id="emp-name" placeholder="Ex.: Maria Silva" required />
+          </label>
+          <label>
+            Nº do passaporte
+            <input type="text" id="emp-passport" placeholder="Ex.: AB123456" required />
+          </label>
+        </div>
+        <div class="row">
+          <button type="submit" class="primary">Adicionar funcionário</button>
+          <span id="employee-feedback" class="muted"></span>
+        </div>
+      </form>
+
+      <table id="employees-table">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Passaporte</th>
+            <th>ID</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section id="worklog-section">
+      <h2>Registro de horas</h2>
+      <form id="worklog-form">
+        <div class="grid-2">
+          <label>
+            Funcionário
+            <select id="work-employee" required></select>
+          </label>
+          <label>
+            Data
+            <input type="date" id="work-date" required />
+          </label>
+        </div>
+        <div class="grid-2">
+          <label>
+            Início
+            <input type="time" id="work-start" required />
+          </label>
+          <label>
+            Fim
+            <input type="time" id="work-end" required />
+          </label>
+        </div>
+        <div class="row">
+          <button type="submit" class="primary">Registrar horas</button>
+          <span id="worklog-feedback" class="muted"></span>
+        </div>
+      </form>
+
+      <div class="spacer"></div>
+
+      <h2>Horas registradas</h2>
+      <table id="worklogs-table">
+        <thead>
+          <tr>
+            <th>Funcionário</th>
+            <th>Data</th>
+            <th>Início</th>
+            <th>Fim</th>
+            <th>Total (h)</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="pagination">
+        <button id="prev-page" class="ghost">← Página anterior</button>
+        <span id="page-info" class="badge">Página 1</span>
+        <button id="next-page" class="ghost">Próxima página →</button>
+      </div>
+    </section>
+
+    <section>
+      <div class="footer">
+        <p>Feito para GitHub Pages. Dependências via CDN. Atualize as chaves do Supabase no código.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Supabase JS via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.46.1/dist/supabase.min.js" integrity="sha384-fakehash" crossorigin="anonymous"></script>
+  <script>
+    // ===== CONFIGURE AQUI =====
+    const SUPABASE_URL = "https://pldamguukjeuakrvfbzf.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_UybNTjqz8fdbDLFhxJvO5Q_78P0AM6Y";
+    // ==========================
+
+    const supabase = supabasejs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // UI refs
+    const empForm = document.getElementById('employee-form');
+    const empName = document.getElementById('emp-name');
+    const empPassport = document.getElementById('emp-passport');
+    const empFeedback = document.getElementById('employee-feedback');
+    const empTableBody = document.querySelector('#employees-table tbody');
+
+    const workForm = document.getElementById('worklog-form');
+    const workEmployee = document.getElementById('work-employee');
+    const workDate = document.getElementById('work-date');
+    const workStart = document.getElementById('work-start');
+    const workEnd = document.getElementById('work-end');
+    const workFeedback = document.getElementById('worklog-feedback');
+
+    const logsTableBody = document.querySelector('#worklogs-table tbody');
+    const prevPageBtn = document.getElementById('prev-page');
+    const nextPageBtn = document.getElementById('next-page');
+    const pageInfo = document.getElementById('page-info');
+
+    // Paginação
+    const PAGE_SIZE = 10;
+    let currentPage = 1;
+    let totalCount = 0;
+
+    // Estado local
+    let employeesCache = [];
+
+    // Utilidades
+    const fmtDate = (d) => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR');
+    const fmtTime = (t) => t?.slice(0,5);
+    const showMsg = (el, msg, type = 'muted') => {
+      el.className = type; el.textContent = msg;
+      if (msg) setTimeout(() => { el.textContent = ''; el.className = 'muted'; }, 3000);
+    };
+
+    // Carregar funcionários
+    async function loadEmployees() {
+      const { data, error } = await supabase.from('employees')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        showMsg(empFeedback, 'Erro ao carregar funcionários: ' + error.message, 'error');
+        return;
+      }
+      employeesCache = data || [];
+      renderEmployees();
+      renderEmployeeSelect();
+    }
+
+    function renderEmployees() {
+      empTableBody.innerHTML = '';
+      if (!employeesCache.length) {
+        empTableBody.innerHTML = '<tr><td colspan="4" class="muted">Nenhum funcionário cadastrado.</td></tr>';
+        return;
+      }
+      employeesCache.forEach(emp => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${emp.name}</td>
+          <td>${emp.passport_number}</td>
+          <td class="muted">${emp.id}</td>
+          <td>
+            <button class="danger" data-del="${emp.id}">Deletar</button>
+          </td>
+        `;
+        empTableBody.appendChild(tr);
+      });
+    }
+
+    function renderEmployeeSelect() {
+      workEmployee.innerHTML = '';
+      if (!employeesCache.length) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = 'Nenhum funcionário';
+        workEmployee.appendChild(opt);
+        return;
+      }
+      employeesCache.forEach(emp => {
+        const opt = document.createElement('option');
+        opt.value = emp.id;
+        opt.textContent = `${emp.name} (${emp.passport_number})`;
+        workEmployee.appendChild(opt);
+      });
+    }
+
+    // Adicionar funcionário
+    empForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = empName.value.trim();
+      const passport = empPassport.value.trim();
+
+      if (!name || !passport) {
+        showMsg(empFeedback, 'Preencha nome e passaporte.', 'error');
+        return;
+      }
+
+      const { data, error } = await supabase.from('employees')
+        .insert({ name, passport_number: passport })
+        .select()
+        .single();
+
+      if (error) {
+        showMsg(empFeedback, 'Erro ao adicionar: ' + error.message, 'error');
+        return;
+      }
+
+      employeesCache.unshift(data);
+      renderEmployees();
+      renderEmployeeSelect();
+      empForm.reset();
+      showMsg(empFeedback, 'Funcionário adicionado.', 'success');
+    });
+
+    // Deletar funcionário
+    empTableBody.addEventListener('click', async (e) => {
+      const btn = e.target.closest('button[data-del]');
+      if (!btn) return;
+      const id = btn.getAttribute('data-del');
+      if (!confirm('Confirmar exclusão do funcionário? As horas vinculadas também serão excluídas.')) return;
+
+      const { error } = await supabase.from('employees').delete().eq('id', id);
+      if (error) {
+        showMsg(empFeedback, 'Erro ao deletar: ' + error.message, 'error');
+        return;
+      }
+      employeesCache = employeesCache.filter(x => x.id !== id);
+      renderEmployees();
+      renderEmployeeSelect();
+      showMsg(empFeedback, 'Funcionário deletado.', 'success');
+      // Recarregar paginação pois work_logs podem ter sido afetados
+      await refreshLogs();
+    });
+
+    // Registrar horas
+    workForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const employeeId = workEmployee.value;
+      const date = workDate.value;
+      const start = workStart.value;
+      const end = workEnd.value;
+
+      if (!employeeId || !date || !start || !end) {
+        showMsg(workFeedback, 'Preencha todos os campos.', 'error');
+        return;
+      }
+      const startMins = toMinutes(start);
+      const endMins = toMinutes(end);
+      if (endMins <= startMins) {
+        showMsg(workFeedback, 'Hora final deve ser maior que a inicial.', 'error');
+        return;
+      }
+      const totalHours = ((endMins - startMins) / 60).toFixed(2);
+
+      const { error } = await supabase.from('work_logs').insert({
+        employee_id: employeeId,
+        work_date: date,
+        start_time: start,
+        end_time: end,
+        total_hours: totalHours
+      });
+
+      if (error) {
+        showMsg(workFeedback, 'Erro ao registrar: ' + error.message, 'error');
+        return;
+      }
+
+      workForm.reset();
+      showMsg(workFeedback, 'Horas registradas.', 'success');
+      await refreshLogs();
+    });
+
+    function toMinutes(hhmm) {
+      const [h, m] = hhmm.split(':').map(Number);
+      return h * 60 + m;
+    }
+
+    // Carregar logs com paginação
+    async function countLogs() {
+      const { count, error } = await supabase
+        .from('work_logs')
+        .select('*', { count: 'exact', head: true });
+
+      if (error) {
+        showMsg(workFeedback, 'Erro ao contar registros: ' + error.message, 'error');
+        return 0;
+      }
+      return count || 0;
+    }
+
+    async function loadLogs(page = 1) {
+      const from = (page - 1) * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
+      const { data, error } = await supabase
+        .from('work_logs')
+        .select('id, employee_id, work_date, start_time, end_time, total_hours, created_at')
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+      if (error) {
+        showMsg(workFeedback, 'Erro ao carregar registros: ' + error.message, 'error');
+        return [];
+      }
+      return data || [];
+    }
+
+    function renderLogs(rows) {
+      logsTableBody.innerHTML = '';
+      if (!rows.length) {
+        logsTableBody.innerHTML = '<tr><td colspan="6" class="muted">Nenhum registro encontrado.</td></tr>';
+        return;
+      }
+      const empMap = new Map(employeesCache.map(e => [e.id, e]));
+      rows.forEach(row => {
+        const emp = empMap.get(row.employee_id);
+        const empLabel = emp ? `${emp.name} (${emp.passport_number})` : '—';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${empLabel}</td>
+          <td>${fmtDate(row.work_date)}</td>
+          <td>${fmtTime(row.start_time)}</td>
+          <td>${fmtTime(row.end_time)}</td>
+          <td>${Number(row.total_hours).toFixed(2)}</td>
+          <td><button class="danger" data-del-log="${row.id}">Deletar</button></td>
+        `;
+        logsTableBody.appendChild(tr);
+      });
+    }
+
+    logsTableBody.addEventListener('click', async (e) => {
+      const btn = e.target.closest('button[data-del-log]');
+      if (!btn) return;
+      const id = btn.getAttribute('data-del-log');
+      if (!confirm('Confirmar exclusão deste registro de horas?')) return;
+
+      const { error } = await supabase.from('work_logs').delete().eq('id', id);
+      if (error) {
+        showMsg(workFeedback, 'Erro ao deletar registro: ' + error.message, 'error');
+        return;
+      }
+      showMsg(workFeedback, 'Registro deletado.', 'success');
+      await refreshLogs();
+    });
+
+    async function refreshLogs() {
+      totalCount = await countLogs();
+      const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+      currentPage = Math.min(currentPage, totalPages); // Ajusta se a página atual ultrapassar
+      const rows = await loadLogs(currentPage);
+      renderLogs(rows);
+      updatePagination(totalPages);
+    }
+
+    function updatePagination(totalPages) {
+      pageInfo.textContent = `Página ${currentPage} de ${totalPages}`;
+      prevPageBtn.disabled = currentPage <= 1;
+      nextPageBtn.disabled = currentPage >= totalPages;
+    }
+
+    prevPageBtn.addEventListener('click', async () => {
+      if (currentPage <= 1) return;
+      currentPage -= 1;
+      await refreshLogs();
+    });
+
+    nextPageBtn.addEventListener('click', async () => {
+      const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+      if (currentPage >= totalPages) return;
+      currentPage += 1;
+      await refreshLogs();
+    });
+
+    // Inicialização
+    (async function init() {
+      showMsg(empFeedback, 'Carregando...', 'loading');
+      await loadEmployees();
+      showMsg(empFeedback, '');
+      await refreshLogs();
+
+      // Preencher data atual
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      workDate.value = `${yyyy}-${mm}-${dd}`;
+    })();
+  </script>
+</body>
+</html><!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
