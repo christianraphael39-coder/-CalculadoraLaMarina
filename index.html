@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <title>Calculadora de Horas</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
@@ -16,12 +15,26 @@
     body { margin:0; background:var(--bg); color:var(--text); font-family: Arial, sans-serif; }
     h1,h3 { margin:0 0 12px; }
 
-    .layout { display:flex; flex-direction:column; min-height:100vh; }
+    .layout { display:flex; flex-direction:column; height:100vh; }
     .topbar { padding:16px; background:var(--panel); border-bottom:1px solid var(--border); }
-    .content { display:flex; flex:1; }
+    .content { display:flex; flex:1; min-height:0; overflow:hidden; }
 
-    .sidebar { width:320px; padding:16px; background:var(--panel); border-right:1px solid var(--border); }
-    .main { flex:1; padding:20px; }
+    .sidebar {
+      flex:0 0 400px;
+      width:400px;
+      max-width:100%;
+      padding:16px;
+      background:var(--panel);
+      border-right:1px solid var(--border);
+      overflow-y:auto;
+      overflow-x:hidden;
+    }
+
+    .main {
+      flex:1;
+      min-width:0;
+      padding:20px;
+    }
 
     .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:18px; }
     .row { display:flex; gap:10px; flex-wrap:wrap; }
@@ -36,21 +49,26 @@
     .btn.red { background:var(--red); border-color:var(--red); color:#0b0b0b; }
 
     /* Chips */
-    .chip { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 12px; border-radius:999px; background:#151515; border:1px solid var(--border); margin:6px 0; font-size:13px; }
+    .chip {
+      display:flex; align-items:center; justify-content:space-between; gap:8px;
+      padding:8px 12px; border-radius:999px; background:#151515; border:1px solid var(--border); margin:6px 0; font-size:13px;
+    }
     .chip.clickable { cursor:pointer; }
     .chip.selected { background:var(--green); color:#0b0b0b; border-color:var(--green); }
-    .chip .label { font-weight:600; }
-    .chip .sub { color:var(--muted); margin-left:6px; }
+    .chip .label { font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:60%; }
+    .chip .sub { color:var(--muted); margin-left:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:40%; }
     .chip .right { display:flex; align-items:center; gap:6px; }
+
     .badge { display:inline-block; padding:4px 10px; border-radius:999px; background:#1a1a1a; border:1px solid var(--border); font-size:12px; }
     .badge.Dono { background:var(--gold); color:#0b0b0b; font-weight:700; }
     .badge.Gerente { background:var(--blue); color:#0b0b0b; font-weight:700; }
+
     .mini-btn { padding:4px 8px; font-size:11px; border-radius:8px; border:1px solid var(--border); background:#1a1a1a; color:var(--text); cursor:pointer; }
     .mini-btn.orange { background:var(--orange); color:#0b0b0b; border-color:var(--orange); }
     .mini-btn.red { background:var(--red); color:#0b0b0b; border-color:var(--red); }
 
-    table { width:100%; border-collapse:collapse; overflow:hidden; border-radius:12px; }
-    th,td { padding:10px 12px; border-bottom:1px solid var(--border); text-align:left; font-size:14px; }
+    table { width:100%; border-collapse:collapse; overflow:hidden; border-radius:12px; table-layout:fixed; }
+    th,td { padding:10px 12px; border-bottom:1px solid var(--border); text-align:left; font-size:14px; word-wrap:break-word; }
     thead th { background:#141414; color:var(--muted); }
 
     .reg-list { display:flex; flex-direction:column; gap:8px; }
@@ -64,17 +82,29 @@
 
     .error { color:var(--red); font-size:13px; margin-top:8px; }
     .muted { color:var(--muted); font-size:13px; }
+
+    @media (max-width: 900px) {
+      .content { flex-direction:column; }
+      .sidebar {
+        width:100%;
+        flex:0 0 auto;
+        border-right:none;
+        border-bottom:1px solid var(--border);
+        max-height:40vh;
+      }
+      .main { flex:1 1 auto; }
+    }
   </style>
 </head>
 <body>
   <div class="layout">
-    <!-- Topo inteiro: Donos e Gerentes -->
     <div class="topbar">
+      <!-- Donos e Gerentes -->
       <h3>Donos e Gerentes</h3>
       <div id="listaResponsaveis"></div>
       <div class="row" style="margin-top:12px;">
         <div class="col"><input id="novoResponsavelNome" type="text" placeholder="Nome do responsável"></div>
-        <div class="col"><input id="novoResponsavelId" type="text" placeholder="ID (opcional, vincular a funcionário)"></div>
+        <div class="col"><input id="novoResponsavelId" type="text" placeholder="ID (opcional, vincular ao funcionário)"></div>
         <div class="col">
           <select id="novoResponsavelCargo">
             <option value="Dono">Dono</option>
@@ -88,8 +118,8 @@
     </div>
 
     <div class="content">
-      <!-- Sidebar à esquerda: Funcionários -->
       <div class="sidebar">
+        <!-- Funcionários -->
         <h3>Funcionários (<span id="contadorFuncionarios">0</span>)</h3>
         <div id="listaFuncionarios"></div>
         <div class="row" style="margin-top:12px;">
@@ -103,7 +133,6 @@
         <p class="muted" style="margin-top:8px;">“Editar” altera nome/ID e migra registros. “Limpar” apaga registros do funcionário.</p>
       </div>
 
-      <!-- Main à direita -->
       <div class="main">
         <h1>Calculadora de Horas</h1>
 
