@@ -16,9 +16,12 @@
     body { margin:0; background:var(--bg); color:var(--text); font-family: Arial, sans-serif; }
     h1,h3 { margin:0 0 12px; }
 
-    .layout { display:flex; min-height:100vh; }
-    .sidebar { flex:1; padding:16px; background:var(--panel); border-right:1px solid var(--border); }
-    .main { flex:3; padding:20px; }
+    .layout { display:flex; flex-direction:column; min-height:100vh; }
+    .topbar { padding:16px; background:var(--panel); border-bottom:1px solid var(--border); }
+    .content { display:flex; flex:1; }
+
+    .sidebar { width:320px; padding:16px; background:var(--panel); border-right:1px solid var(--border); }
+    .main { flex:1; padding:20px; }
 
     .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:18px; }
     .row { display:flex; gap:10px; flex-wrap:wrap; }
@@ -32,26 +35,20 @@
     .btn.blue { background:var(--blue); border-color:var(--blue); color:#0b0b0b; }
     .btn.red { background:var(--red); border-color:var(--red); color:#0b0b0b; }
 
-    /* Chips de funcionários */
-    .chip { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 8px; border-radius:999px; background:#151515; border:1px solid var(--border); margin:6px 0; cursor:pointer; font-size:13px; }
+    /* Chips */
+    .chip { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 12px; border-radius:999px; background:#151515; border:1px solid var(--border); margin:6px 0; font-size:13px; }
+    .chip.clickable { cursor:pointer; }
     .chip.selected { background:var(--green); color:#0b0b0b; border-color:var(--green); }
-    .chip .label { font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .chip .actions { display:flex; gap:6px; }
-    .mini-btn { padding:3px 8px; border-radius:8px; font-size:11px; border:1px solid var(--border); background:#1a1a1a; color:var(--text); cursor:pointer; }
-    .mini-btn.orange { background:var(--orange); color:#0b0b0b; border-color:var(--orange); }
-    .mini-btn.red { background:var(--red); color:#0b0b0b; border-color:var(--red); }
-
-    /* Responsáveis */
-    .resp-list { display:flex; flex-direction:column; gap:8px; }
-    .resp-item { display:flex; align-items:center; justify-content:space-between; background:#151515; border:1px solid var(--border); border-radius:10px; padding:8px 10px; }
-    .resp-item .left { display:flex; align-items:center; gap:8px; }
-    .resp-item .name { font-weight:600; }
-    .resp-item .id { color:var(--muted); font-size:12px; }
+    .chip .label { font-weight:600; }
+    .chip .sub { color:var(--muted); margin-left:6px; }
+    .chip .right { display:flex; align-items:center; gap:6px; }
     .badge { display:inline-block; padding:4px 10px; border-radius:999px; background:#1a1a1a; border:1px solid var(--border); font-size:12px; }
     .badge.Dono { background:var(--gold); color:#0b0b0b; font-weight:700; }
     .badge.Gerente { background:var(--blue); color:#0b0b0b; font-weight:700; }
+    .mini-btn { padding:4px 8px; font-size:11px; border-radius:8px; border:1px solid var(--border); background:#1a1a1a; color:var(--text); cursor:pointer; }
+    .mini-btn.orange { background:var(--orange); color:#0b0b0b; border-color:var(--orange); }
+    .mini-btn.red { background:var(--red); color:#0b0b0b; border-color:var(--red); }
 
-    /* Tabela e registros */
     table { width:100%; border-collapse:collapse; overflow:hidden; border-radius:12px; }
     th,td { padding:10px 12px; border-bottom:1px solid var(--border); text-align:left; font-size:14px; }
     thead th { background:#141414; color:var(--muted); }
@@ -67,80 +64,83 @@
 
     .error { color:var(--red); font-size:13px; margin-top:8px; }
     .muted { color:var(--muted); font-size:13px; }
-    hr { border:0; border-top:1px solid var(--border); margin:18px 0; }
   </style>
 </head>
 <body>
   <div class="layout">
-    <!-- Sidebar à esquerda -->
-    <div class="sidebar">
-      <h3>Funcionários (<span id="contadorFuncionarios">0</span>)</h3>
-      <div id="listaFuncionarios"></div>
-      <div class="row" style="margin-top:12px;">
-        <div class="col"><input id="novoNome" type="text" placeholder="Nome"></div>
-        <div class="col"><input id="novoId" type="text" placeholder="ID"></div>
-      </div>
-      <div class="row" style="margin-top:8px;">
-        <div class="col" style="flex:0 0 auto;"><button class="btn primary" id="btnAddFuncionario">Adicionar</button></div>
-        <div class="col" style="flex:0 0 auto;"><button class="btn red" id="btnLimparTodos">Limpar TODOS</button></div>
-      </div>
-      <p class="muted" style="margin-top:8px;">“Editar” altera nome/ID e migra registros. “Limpar” apaga registros do funcionário.</p>
-
-      <hr />
+    <!-- Topo inteiro: Donos e Gerentes -->
+    <div class="topbar">
       <h3>Donos e Gerentes</h3>
-      <div id="listaResponsaveis" class="resp-list"></div>
+      <div id="listaResponsaveis"></div>
       <div class="row" style="margin-top:12px;">
         <div class="col"><input id="novoResponsavelNome" type="text" placeholder="Nome do responsável"></div>
-        <div class="col"><input id="novoResponsavelId" type="text" placeholder="ID do responsável (opcional)"></div>
+        <div class="col"><input id="novoResponsavelId" type="text" placeholder="ID (opcional, vincular a funcionário)"></div>
         <div class="col">
           <select id="novoResponsavelCargo">
             <option value="Dono">Dono</option>
             <option value="Gerente">Gerente</option>
           </select>
         </div>
-      </div>
-      <div class="row" style="margin-top:8px;">
-        <div class="col" style="flex:0 0 auto;"><button class="btn primary" id="btnAddResponsavel">Adicionar responsável</button></div>
+        <div class="col" style="flex:0 0 auto;">
+          <button class="btn primary" id="btnAddResponsavel">Adicionar responsável</button>
+        </div>
       </div>
     </div>
 
-    <!-- Main à direita -->
-    <div class="main">
-      <h1>Calculadora de Horas</h1>
-
-      <div class="card">
-        <h3>Adicionar Horas</h3>
-        <div class="row">
-          <div class="col"><input id="horas" type="number" min="0" placeholder="Horas"></div>
-          <div class="col"><input id="minutos" type="number" min="0" max="59" placeholder="Minutos"></div>
-          <div class="col"><input id="segundos" type="number" min="0" max="59" placeholder="Segundos"></div>
-          <div style="align-self:end;"><button class="btn primary" id="btnAddRegistro">Registrar</button></div>
-          <div style="align-self:end;"><button class="btn blue" id="btnOrdenar">Ordenar por total</button></div>
+    <div class="content">
+      <!-- Sidebar à esquerda: Funcionários -->
+      <div class="sidebar">
+        <h3>Funcionários (<span id="contadorFuncionarios">0</span>)</h3>
+        <div id="listaFuncionarios"></div>
+        <div class="row" style="margin-top:12px;">
+          <div class="col"><input id="novoNome" type="text" placeholder="Nome"></div>
+          <div class="col"><input id="novoId" type="text" placeholder="ID"></div>
         </div>
-        <div id="msgErro" class="error" style="display:none;"></div>
+        <div class="row" style="margin-top:8px;">
+          <div class="col" style="flex:0 0 auto;"><button class="btn primary" id="btnAddFuncionario">Adicionar</button></div>
+          <div class="col" style="flex:0 0 auto;"><button class="btn red" id="btnLimparTodos">Limpar TODOS</button></div>
+        </div>
+        <p class="muted" style="margin-top:8px;">“Editar” altera nome/ID e migra registros. “Limpar” apaga registros do funcionário.</p>
       </div>
 
-      <div class="card">
-        <h3>Resultados</h3>
-        <table>
-          <thead><tr><th>Nome</th><th>ID</th><th>Total (h:m:s)</th><th>Total (segundos)</th></tr></thead>
-          <tbody id="tabelaBody"></tbody>
-        </table>
-        <div class="rank">
-          <h3>🏆 Ranking Top 3</h3>
-          <div id="rankList"></div>
-        </div>
-      </div>
+      <!-- Main à direita -->
+      <div class="main">
+        <h1>Calculadora de Horas</h1>
 
-      <div class="card">
-        <h3>Registros do Funcionário Selecionado</h3>
-        <div id="registrosArea" class="reg-list"></div>
+        <div class="card">
+          <h3>Adicionar Horas</h3>
+          <div class="row">
+            <div class="col"><input id="horas" type="number" min="0" placeholder="Horas"></div>
+            <div class="col"><input id="minutos" type="number" min="0" max="59" placeholder="Minutos"></div>
+            <div class="col"><input id="segundos" type="number" min="0" max="59" placeholder="Segundos"></div>
+            <div style="align-self:end;"><button class="btn primary" id="btnAddRegistro">Registrar</button></div>
+            <div style="align-self:end;"><button class="btn blue" id="btnOrdenar">Ordenar por total</button></div>
+          </div>
+          <div id="msgErro" class="error" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+          <h3>Resultados</h3>
+          <table>
+            <thead><tr><th>Nome</th><th>ID</th><th>Total (h:m:s)</th><th>Total (segundos)</th></tr></thead>
+            <tbody id="tabelaBody"></tbody>
+          </table>
+          <div class="rank">
+            <h3>🏆 Ranking Top 3</h3>
+            <div id="rankList"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Registros do Funcionário Selecionado</h3>
+          <div id="registrosArea" class="reg-list"></div>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
-    // Declaração única do cliente Supabase
+    // Supabase client (apenas uma vez)
     const supabase = window.supabase.createClient(
       "https://pldamguukjeuakrvfbzf.supabase.co",
       "sb_publishable_UybNTjqz8fdbDLFhxJvO5Q_78P0AM6Y"
@@ -192,15 +192,24 @@
       }
       funcionarios.forEach((f,idx)=>{
         const chip=document.createElement("div");
-        chip.className="chip"+(funcionarioSelecionado===idx?" selected":"");
+        chip.className="chip clickable"+(funcionarioSelecionado===idx?" selected":"");
         chip.addEventListener("click",()=>selecionarFuncionario(idx));
+
+        const left=document.createElement("div");
+        left.style.display="flex"; left.style.alignItems="center";
 
         const label=document.createElement("span");
         label.className="label";
-        label.textContent=`${f.nome} (ID: ${f.id})`;
+        label.textContent=f.nome;
 
-        const actions=document.createElement("span");
-        actions.className="actions";
+        const sub=document.createElement("span");
+        sub.className="sub";
+        sub.textContent=`ID: ${f.id}`;
+
+        left.appendChild(label);
+        left.appendChild(sub);
+
+        const right=document.createElement("div"); right.className="right";
 
         const editBtn=document.createElement("button");
         editBtn.className="mini-btn orange";
@@ -224,13 +233,13 @@
         delBtn.textContent="Remover";
         delBtn.addEventListener("click",(e)=>{e.stopPropagation();removerFuncionario(idx);});
 
-        actions.appendChild(editBtn);
-        actions.appendChild(clearBtn);
-        actions.appendChild(upBtn);
-        actions.appendChild(delBtn);
+        right.appendChild(editBtn);
+        right.appendChild(clearBtn);
+        right.appendChild(upBtn);
+        right.appendChild(delBtn);
 
-        chip.appendChild(label);
-        chip.appendChild(actions);
+        chip.appendChild(left);
+        chip.appendChild(right);
         listaFuncionariosEl.appendChild(chip);
       });
     }
@@ -305,46 +314,50 @@
       });
     }
 
-    // ---------- Donos e Gerentes ----------
+    // ---------- Donos e Gerentes (TOP) ----------
     function renderResponsaveis(){
       listaResponsaveisEl.innerHTML="";
       if(!responsaveis || responsaveis.length===0){
-        listaResponsaveisEl.innerHTML = "<div class='muted'>Nenhum responsável cadastrado.</div>";
+        listaResponsaveisEl.innerHTML = "<p class='muted'>Nenhum responsável cadastrado.</p>";
         return;
       }
       responsaveis.forEach(r=>{
-        const item=document.createElement("div");
-        item.className="resp-item";
+        const chip=document.createElement("div");
+        chip.className="chip";
 
         const left=document.createElement("div");
-        left.className="left";
+        left.style.display="flex"; left.style.alignItems="center";
 
-        const name=document.createElement("span");
-        name.className="name";
-        name.textContent=r.nome;
+        const label=document.createElement("span");
+        label.className="label";
+        label.textContent=r.nome;
 
-        const idspan=document.createElement("span");
-        idspan.className="id";
-        idspan.textContent=`ID: ${r.id_ref ?? "-"}`;
+        const sub=document.createElement("span");
+        sub.className="sub";
+        sub.textContent=`ID: ${r.id_ref ?? "-"}`;
+
+        left.appendChild(label);
+        left.appendChild(sub);
+
+        const right=document.createElement("div"); right.className="right";
 
         const cargo=document.createElement("span");
         cargo.className=`badge ${r.cargo}`;
         cargo.textContent=r.cargo;
 
-        left.appendChild(name);
-        left.appendChild(idspan);
-        left.appendChild(cargo);
-
-        const remove=document.createElement("span");
-        remove.className="remove";
+        const remove=document.createElement("button");
+        remove.className="mini-btn red";
         remove.textContent="Remover";
         remove.addEventListener("click", async ()=>{
           await removerResponsavel(r.id);
         });
 
-        item.appendChild(left);
-        item.appendChild(remove);
-        listaResponsaveisEl.appendChild(item);
+        right.appendChild(cargo);
+        right.appendChild(remove);
+
+        chip.appendChild(left);
+        chip.appendChild(right);
+        listaResponsaveisEl.appendChild(chip);
       });
     }
 
@@ -361,9 +374,7 @@
       const cargo=(novoResponsavelCargoEl.value||"").trim();
       if(!nome || !cargo){ alert("Informe nome e cargo!"); return; }
 
-      const payload = { nome, cargo };
-      if(idref) payload.id_ref = idref;
-
+      const payload = { nome, cargo, id_ref: idref || null };
       const { error } = await supabase.from("responsaveis").insert([payload]);
       if(error){ alert("Erro ao salvar responsável: " + error.message); return; }
 
@@ -380,9 +391,10 @@
     }
 
     async function uparParaGerente(funcionario){
-      // Evita duplicidade: mesmo id_ref e cargo Gerente
+      // Evita duplicidade de gerente para o mesmo id_ref
       const { data: existe, error: errCheck } = await supabase
-        .from("responsaveis").select("id")
+        .from("responsaveis")
+        .select("id")
         .eq("id_ref", funcionario.id)
         .eq("cargo", "Gerente")
         .limit(1);
@@ -493,8 +505,8 @@
       const s=parseInt(segundosEl.value||"0",10);
 
       if(h===0 && m===0 && s===0){ showError("Não é permitido adicionar um registro em branco."); return; }
-      if([h,m,s].some(v=>Number.isNaN(v)||v<0)){ showError("Horas, minutos e segundos devem ser válidos (>= 0)."); return; }
-      if(m>59 || s>59){ showError("Minutos e segundos devem estar entre 0 e 59."); return; }
+      if([h,m,s].some(v=>Number.isNaN(v)||v<0)){ showError("Valores inválidos (>= 0)."); return; }
+      if(m>59 || s>59){ showError("Minutos/segundos devem estar entre 0 e 59."); return; }
 
       const f = funcionarios[funcionarioSelecionado];
       const total = toSeconds(h,m,s);
@@ -515,7 +527,6 @@
     async function limparRegistrosFuncionario(funcionarioId, nome){
       if(!confirm(`Deseja limpar TODOS os registros de ${nome} (ID: ${funcionarioId})? Esta ação não pode ser desfeita.`)) return;
       const { error } = await supabase.from("registros").delete().eq("funcionario_id", funcionarioId);
-      iferror:{}
       if(error){ alert("Erro ao limpar registros: " + error.message); return; }
       await carregarRegistros();
     }
