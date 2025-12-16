@@ -16,8 +16,11 @@
     body { margin:0; background:var(--bg); color:var(--text); font-family: Arial, sans-serif; }
     h1,h3 { margin:0 0 12px; }
     .layout { display:flex; min-height:100vh; }
+
+    /* Sidebar à esquerda */
+    .sidebar { flex:1; padding:16px; background:var(--panel); border-right:1px solid var(--border); }
     .main { flex:3; padding:20px; }
-    .sidebar { flex:1; padding:16px; background:var(--panel); border-left:1px solid var(--border); }
+
     .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:18px; }
     .row { display:flex; gap:10px; flex-wrap:wrap; }
     .col { flex:1; min-width:160px; }
@@ -28,7 +31,7 @@
     .btn.blue { background:var(--blue); border-color:var(--blue); color:#0b0b0b; }
     .btn.red { background:var(--red); border-color:var(--red); color:#0b0b0b; }
 
-    /* Sidebar chips */
+    /* Chips da sidebar */
     .chip { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 8px; border-radius:999px; background:#151515; border:1px solid var(--border); margin:6px 0; cursor:pointer; font-size:13px; }
     .chip.selected { background:var(--green); color:#0b0b0b; border-color:var(--green); }
     .chip .label { font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -58,45 +61,7 @@
 </head>
 <body>
   <div class="layout">
-    <!-- Main à esquerda -->
-    <div class="main">
-      <h1>Calculadora de horas</h1>
-      <p class="muted">Selecione um funcionário na lateral direita. Adicione registros abaixo.</p>
-
-      <div class="card">
-        <h3>Adicionar horas</h3>
-        <div class="row">
-          <div class="col"><label>Horas</label><input id="horas" type="number" min="0" placeholder="0"></div>
-          <div class="col"><label>Minutos</label><input id="minutos" type="number" min="0" max="59" placeholder="0"></div>
-          <div class="col"><label>Segundos</label><input id="segundos" type="number" min="0" max="59" placeholder="0"></div>
-          <div style="align-self:end;"><button class="btn primary" id="btnAddRegistro">Registrar</button></div>
-          <div style="align-self:end;"><button class="btn blue" id="btnOrdenar">Ordenar por total</button></div>
-        </div>
-        <div id="msgErro" class="error" style="display:none;"></div>
-      </div>
-
-      <div class="card">
-        <h3>Resultados</h3>
-        <table>
-          <thead>
-            <tr><th>Nome</th><th>ID</th><th>Total (h:m:s)</th><th>Total (segundos)</th></tr>
-          </thead>
-          <tbody id="tabelaBody"></tbody>
-        </table>
-
-        <div class="rank">
-          <h3>🏆 Ranking Top 3</h3>
-          <div id="rankList"></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>Registros do funcionário selecionado</h3>
-        <div id="registrosArea" class="reg-list"></div>
-      </div>
-    </div>
-
-    <!-- Sidebar à direita -->
+    <!-- Sidebar à esquerda -->
     <div class="sidebar">
       <h3>Funcionários</h3>
       <div id="listaFuncionarios"></div>
@@ -106,9 +71,43 @@
       </div>
       <div class="row" style="margin-top:8px;">
         <div class="col" style="flex:0 0 auto;"><button class="btn primary" id="btnAddFuncionario">Adicionar</button></div>
-        <div class="col" style="flex:0 0 auto;"><button class="btn red" id="btnLimparTodos">Limpar TODOS os registros</button></div>
+        <div class="col" style="flex:0 0 auto;"><button class="btn red" id="btnLimparTodos">Limpar TODOS</button></div>
       </div>
-      <p class="muted" style="margin-top:8px;">“Editar” altera nome/ID (migra registros). “Limpar” apaga registros do funcionário.</p>
+      <p class="muted" style="margin-top:8px;">Use “Editar” para alterar nome/ID. “Limpar” apaga registros do funcionário.</p>
+    </div>
+
+    <!-- Main à direita -->
+    <div class="main">
+      <h1>Calculadora de Horas</h1>
+
+      <div class="card">
+        <h3>Adicionar Horas</h3>
+        <div class="row">
+          <div class="col"><input id="horas" type="number" min="0" placeholder="Horas"></div>
+          <div class="col"><input id="minutos" type="number" min="0" max="59" placeholder="Minutos"></div>
+          <div class="col"><input id="segundos" type="number" min="0" max="59" placeholder="Segundos"></div>
+          <div style="align-self:end;"><button class="btn primary" id="btnAddRegistro">Registrar</button></div>
+          <div style="align-self:end;"><button class="btn blue" id="btnOrdenar">Ordenar</button></div>
+        </div>
+        <div id="msgErro" class="error" style="display:none;"></div>
+      </div>
+
+      <div class="card">
+        <h3>Resultados</h3>
+        <table>
+          <thead><tr><th>Nome</th><th>ID</th><th>Total (h:m:s)</th><th>Total (segundos)</th></tr></thead>
+          <tbody id="tabelaBody"></tbody>
+        </table>
+        <div class="rank">
+          <h3>🏆 Ranking Top 3</h3>
+          <div id="rankList"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Registros do Funcionário Selecionado</h3>
+        <div id="registrosArea" class="reg-list"></div>
+      </div>
     </div>
   </div>
 
