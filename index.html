@@ -4,75 +4,129 @@
   <meta charset="UTF-8" />
   <title>Calculadora de Horas (Supabase)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- SDK do Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+
     :root {
-      --bg: #0b0b0b; --panel: #121212; --border: #1e1e1e;
-      --text: #e9e9e9; --muted: #9a9a9a; --accent: #4f74ff;
-      --green: #2ecc71; --blue: #3b82f6; --orange: #f59e0b; --red: #ef4444;
+      --bg1: #0b0b0b;
+      --bg2: #1a1a1a;
+      --panel: #121212;
+      --border: #1e1e1e;
+      --text: #e9e9e9;
+      --muted: #9a9a9a;
+      --accent: #4f74ff;
+      --green: #2ecc71;
+      --blue: #3b82f6;
+      --orange: #f59e0b;
+      --red: #ef4444;
+      --gold: #ffd700;
+      --silver: #c0c0c0;
+      --bronze: #cd7f32;
     }
+
     * { box-sizing: border-box; }
-    body { margin:0; background:var(--bg); color:var(--text); font-family: Inter, Arial, sans-serif; }
-    h1,h3 { margin:0 0 12px; }
+    body {
+      margin:0;
+      font-family: 'Inter', Arial, sans-serif;
+      background: linear-gradient(135deg, var(--bg1), var(--bg2));
+      color:var(--text);
+    }
+    h1 { font-size:28px; font-weight:700; margin-bottom:16px; }
+    h3 { font-size:18px; font-weight:600; margin-bottom:12px; }
     .layout { display:flex; min-height:100vh; }
+    .sidebar { flex:1; padding:16px; background:var(--panel); border-right:1px solid var(--border); }
     .main { flex:3; padding:20px; }
-    .sidebar { flex:1; padding:16px; background:var(--panel); border-left:1px solid var(--border); }
-    .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:18px; }
+    .card {
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:16px;
+      margin-bottom:18px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.4);
+      transition:transform .2s ease;
+    }
+    .card:hover { transform:translateY(-2px); }
     .row { display:flex; gap:10px; flex-wrap:wrap; }
     .col { flex:1; min-width:160px; }
-    input { width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:#0e0e0e; color:var(--text); outline:none; }
+    input {
+      width:100%; padding:10px;
+      border-radius:10px; border:1px solid var(--border);
+      background:#0e0e0e; color:var(--text);
+    }
     input::placeholder { color:#7a7a7a; }
-    .btn { padding:10px 14px; border-radius:10px; border:1px solid var(--border); background:#151515; color:var(--text); cursor:pointer; transition:border-color .15s ease, transform .15s ease; }
-    .btn:hover { transform:translateY(-1px); border-color:var(--accent); }
-    .btn.primary { background:var(--green); border-color:var(--green); color:#0b0b0b; }
-    .btn.blue { background:var(--blue); border-color:var(--blue); color:#0b0b0b; }
-    .btn.red { background:var(--red); border-color:var(--red); color:#0b0b0b; }
-    .btn.orange { background:var(--orange); border-color:var(--orange); color:#0b0b0b; }
-    .muted { color:var(--muted); font-size:13px; }
-
-    /* Chips menores na sidebar */
-    .chip { display:flex; align-items:center; justify-content:space-between; gap:8px;
-            padding:6px 8px; border-radius:999px; background:#151515; border:1px solid var(--border);
-            margin:6px 0; cursor:pointer; font-size:13px; }
-    .chip.selected { background:var(--green); color:#0b0b0b; border-color:var(--green); }
-    .chip .label { font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .chip .actions { display:flex; gap:6px; }
-    .mini-btn { padding:3px 8px; border-radius:8px; font-size:11px; border:1px solid var(--border); background:#1a1a1a; color:var(--text); cursor:pointer; }
-    .mini-btn.orange { background:var(--orange); color:#0b0b0b; border-color:var(--orange); }
-    .mini-btn.red { background:var(--red); color:#0b0b0b; border-color:var(--red); }
-
-    table { width:100%; border-collapse:collapse; overflow:hidden; border-radius:12px; }
-    th,td { padding:10px 12px; border-bottom:1px solid var(--border); text-align:left; font-size:14px; }
+    .btn {
+      padding:10px 14px; border-radius:10px;
+      border:1px solid var(--border); background:#151515;
+      color:var(--text); cursor:pointer;
+      transition:all .2s ease;
+    }
+    .btn:hover { box-shadow:0 0 8px var(--accent); }
+    .btn.primary { background:var(--green); color:#0b0b0b; }
+    .btn.blue { background:var(--blue); color:#0b0b0b; }
+    .btn.red { background:var(--red); color:#0b0b0b; }
+    .chip {
+      display:flex; justify-content:space-between;
+      padding:6px 8px; border-radius:999px;
+      background:#151515; border:1px solid var(--border);
+      margin:6px 0; font-size:13px; cursor:pointer;
+      transition:all .2s ease;
+    }
+    .chip:hover { background:#1f1f1f; }
+    .chip.selected { border-left:4px solid var(--green); background:#2ecc71; color:#0b0b0b; }
+    .mini-btn { padding:3px 6px; font-size:11px; border-radius:6px; border:1px solid var(--border); background:#1a1a1a; color:#e9e9e9; cursor:pointer; }
+    .mini-btn.orange { background:var(--orange); color:#0b0b0b; }
+    .mini-btn.red { background:var(--red); color:#0b0b0b; }
+    table { width:100%; border-collapse:collapse; border-radius:12px; overflow:hidden; }
+    th,td { padding:10px; border-bottom:1px solid var(--border); text-align:left; }
     thead th { background:#141414; color:var(--muted); }
+    tbody tr:nth-child(even) { background:#181818; }
     .badge { display:inline-block; padding:4px 10px; border-radius:999px; background:#1a1a1a; border:1px solid var(--border); font-size:12px; }
-
-    /* Área separada de registros */
     .reg-list { display:flex; flex-direction:column; gap:8px; }
-    .reg-item { display:flex; align-items:center; justify-content:space-between; background:#151515; border:1px solid var(--border); border-radius:10px; padding:8px 10px; }
-    .reg-item .time { font-weight:600; }
+    .reg-item { display:flex; justify-content:space-between; background:#151515; border:1px solid var(--border); border-radius:10px; padding:8px; }
     .reg-item .remove { color:#ef4444; cursor:pointer; font-weight:700; }
-
-    /* Ranking */
     .rank { background:#1a1a1a; border:1px solid var(--border); border-radius:10px; padding:10px; margin-top:10px; }
     .rank-item { display:flex; justify-content:space-between; padding:6px 8px; border-radius:8px; background:#151515; border:1px solid var(--border); margin:6px 0; }
-    .rank-pos { font-weight:700; }
+    .rank-item span:first-child { font-weight:700; }
+    .error { color:#ef4444; font-size:13px; margin-top:8px; }
+    .notify {
+      position:fixed; bottom:20px; right:20px;
+      background:#2ecc71; color:#0b0b0b;
+      padding:10px 16px; border-radius:8px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.4);
+      opacity:0; transition:opacity .3s ease;
+    }
+    .notify.show { opacity:1; }
   </style>
 </head>
 <body>
   <div class="layout">
+    <!-- Sidebar à esquerda -->
+    <div class="sidebar">
+      <h3>Funcionários</h3>
+      <div id="listaFuncionarios"></div>
+      <div class="row" style="margin-top:12px;">
+        <div class="col"><input id="novoNome" type="text" placeholder="Nome"></div>
+        <div class="col"><input id="novoId" type="text" placeholder="ID"></div>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <div class="col"><button class="btn primary" id="btnAddFuncionario">➕ Adicionar</button></div>
+        <div class="col"><button class="btn red" id="btnLimparTodos">🗑️ Limpar TODOS</button></div>
+      </div>
+    </div>
+
+    <!-- Main à direita -->
     <div class="main">
-      <h1>Calculadora de horas</h1>
-      <p class="muted">Selecione um funcionário na lateral direita. Adicione registros e gerencie abaixo.</p>
+      <h1>Calculadora de Horas</h1>
 
       <div class="card">
-        <h3>Adicionar horas</h3>
+        <h3>Adicionar Horas</h3>
         <div class="row">
-          <div class="col"><label>Horas</label><input id="horas" type="number" min="0" placeholder="0"></div>
-          <div class="col"><label>Minutos</label><input id="minutos" type="number" min="0" max="59" placeholder="0"></div>
-          <div class="col"><label>Segundos</label><input id="segundos" type="number" min="0" max="59" placeholder="0"></div>
-          <div style="align-self:end;"><button class="btn primary" id="btnAddRegistro">Registrar</button></div>
-          <div style="align-self:end;"><button class="btn blue" id="btnOrdenar">Ordenar por total</button></div>
+          <div class="col"><input id="horas" type="number" min="0" placeholder="Horas"></div>
+          <div class="col"><input id="minutos" type="number" min="0" max="59" placeholder="Minutos"></div>
+          <div class="col"><input id="segundos" type="number" min="0" max="59" placeholder="Segundos"></div>
+          <div style="align-self:end;"><button class="btn primary" id="btnAddRegistro">✅ Registrar</button></div>
+          <div style="align-self:end;"><button class="btn blue" id="btnOrdenar">🔄 Ordenar</button></div>
         </div>
         <div id="msgErro" class="error" style="display:none;"></div>
       </div>
@@ -80,12 +134,9 @@
       <div class="card">
         <h3>Resultados</h3>
         <table>
-          <thead>
-            <tr><th>Nome</th><th>ID</th><th>Total (h:m:s)</th><th>Total (segundos)</th></tr>
-          </thead>
+          <thead><tr><th>Nome</th><th>ID</th><th>Total (h:m:s)</th><th>Total (segundos)</th></tr></thead>
           <tbody id="tabelaBody"></tbody>
         </table>
-
         <div class="rank">
           <h3>🏆 Ranking Top 3</h3>
           <div id="rankList"></div>
@@ -93,330 +144,4 @@
       </div>
 
       <div class="card">
-        <h3>Registros do funcionário selecionado</h3>
-        <div id="registrosArea" class="reg-list"></div>
-      </div>
-    </div>
-
-    <div class="sidebar">
-      <h3>Funcionários</h3>
-      <div id="listaFuncionarios"></div>
-      <div style="margin-top:12px;" class="row">
-        <div class="col"><input id="novoNome" type="text" placeholder="Nome"></div>
-        <div class="col"><input id="novoId" type="text" placeholder="ID"></div>
-      </div>
-      <div class="row" style="margin-top:8px;">
-        <div class="col" style="flex:0 0 auto;"><button class="btn primary" id="btnAddFuncionario">Adicionar</button></div>
-        <div class="col" style="flex:0 0 auto;"><button class="btn red" id="btnLimparTodos">Limpar TODOS os registros</button></div>
-      </div>
-      <p class="muted" style="margin-top:8px;">Use “Editar” para alterar nome/ID (migra registros). “Limpar” apaga registros do funcionário.</p>
-    </div>
-  </div>
-
-  <script>
-    // Cliente Supabase
-    const supabase = window.supabase.createClient(
-      "https://pldamguukjeuakrvfbzf.supabase.co",
-      "sb_publishable_UybNTjqz8fdbDLFhxJvO5Q_78P0AM6Y"
-    );
-
-    // Estado
-    let funcionarios = [];
-    let pessoas = {};
-    let funcionarioSelecionado = null;
-
-    // Utils
-    const chavePessoa = (nome,id)=>`${nome}::${id}`;
-    const toSeconds=(h,m,s)=>(h*3600)+(m*60)+s;
-    const fmtHMS=total=>`${Math.floor(total/3600)}h ${Math.floor((total%3600)/60)}m ${total%60}s`;
-
-    // DOM refs
-    const listaFuncionariosEl=document.getElementById("listaFuncionarios");
-    const tabelaBodyEl=document.getElementById("tabelaBody");
-    const registrosArea=document.getElementById("registrosArea");
-    const rankList=document.getElementById("rankList");
-    const novoNomeEl=document.getElementById("novoNome");
-    const novoIdEl=document.getElementById("novoId");
-    const horasEl=document.getElementById("horas");
-    const minutosEl=document.getElementById("minutos");
-    const segundosEl=document.getElementById("segundos");
-    const msgErroEl=document.getElementById("msgErro");
-
-    function showError(msg){msgErroEl.textContent=msg;msgErroEl.style.display="block";setTimeout(()=>{msgErroEl.style.display="none";},3000);}
-
-    // Render sidebar de funcionários
-    function renderFuncionarios(){
-      listaFuncionariosEl.innerHTML="";
-      if(funcionarios.length===0){
-        listaFuncionariosEl.innerHTML="<p class='muted'>Nenhum funcionário cadastrado.</p>";
-        return;
-      }
-      funcionarios.forEach((f,idx)=>{
-        const chip=document.createElement("div");
-        chip.className="chip"+(funcionarioSelecionado===idx?" selected":"");
-        chip.addEventListener("click",()=>selecionarFuncionario(idx));
-
-        const label=document.createElement("span");
-        label.className="label";
-        label.textContent=`${f.nome} (ID: ${f.id})`;
-
-        const actions=document.createElement("span");
-        actions.className="actions";
-
-        const editBtn=document.createElement("button");
-        editBtn.className="mini-btn orange";
-        editBtn.textContent="Editar";
-        editBtn.addEventListener("click",(e)=>{e.stopPropagation();editarFuncionario(idx);});
-
-        const clearBtn=document.createElement("button");
-        clearBtn.className="mini-btn";
-        clearBtn.textContent="Limpar";
-        clearBtn.title="Limpar registros deste funcionário";
-        clearBtn.addEventListener("click",(e)=>{e.stopPropagation();limparRegistrosFuncionario(f.id,f.nome);});
-
-        const delBtn=document.createElement("button");
-        delBtn.className="mini-btn red";
-        delBtn.textContent="Remover";
-        delBtn.addEventListener("click",(e)=>{e.stopPropagation();removerFuncionario(idx);});
-
-        actions.appendChild(editBtn);
-        actions.appendChild(clearBtn);
-        actions.appendChild(delBtn);
-
-        chip.appendChild(label);
-        chip.appendChild(actions);
-        listaFuncionariosEl.appendChild(chip);
-      });
-    }
-
-    // Render tabela geral e ranking
-    function renderTabela(){
-      tabelaBodyEl.innerHTML="";
-      const dados = Object.values(pessoas);
-      if(dados.length===0){
-        tabelaBodyEl.innerHTML=`<tr><td colspan="4" class="muted">Sem registros.</td></tr>`;
-      } else {
-        dados.forEach(p=>{
-          const tr=document.createElement("tr");
-          tr.innerHTML=`<td>${p.nome}</td><td>${p.id}</td><td><span class="badge">${fmtHMS(p.total)}</span></td><td>${p.total}</td>`;
-          tabelaBodyEl.appendChild(tr);
-        });
-      }
-      renderRanking(dados);
-      renderRegistrosSelecionado();
-    }
-
-    function renderRanking(dados){
-      rankList.innerHTML="";
-      const top = [...dados].sort((a,b)=>b.total-a.total).slice(0,3);
-      if(top.length===0){
-        rankList.innerHTML=`<div class="muted">Sem dados para o ranking.</div>`;
-        return;
-      }
-      top.forEach((p,i)=>{
-        const item=document.createElement("div");
-        item.className="rank-item";
-        const pos=i+1;
-        item.innerHTML=`<span class="rank-pos">${pos}º</span><span>${p.nome}</span><span>${fmtHMS(p.total)}</span>`;
-        rankList.appendChild(item);
-      });
-    }
-
-    // Área separada: registros do funcionário selecionado
-    function renderRegistrosSelecionado(){
-      registrosArea.innerHTML="";
-      if(funcionarioSelecionado===null){
-        registrosArea.innerHTML=`<div class="muted">Selecione um funcionário para ver os registros.</div>`;
-        return;
-      }
-      const f=funcionarios[funcionarioSelecionado];
-      const chave=chavePessoa(f.nome,f.id);
-      const pessoa=pessoas[chave];
-
-      if(!pessoa || pessoa.registros.length===0){
-        registrosArea.innerHTML=`<div class="muted">Sem registros para ${f.nome}.</div>`;
-        return;
-      }
-
-      pessoa.registros.forEach(r=>{
-        const item=document.createElement("div");
-        item.className="reg-item";
-        item.innerHTML=`
-          <span class="time">${r.h}h ${r.m}m ${r.s}s</span>
-          <span class="remove" data-id="${r.id}" title="Remover">Remover</span>
-        `;
-        registrosArea.appendChild(item);
-      });
-    }
-
-    // Delegação para remover registro individual (na área separada)
-    document.addEventListener("click", async (e)=>{
-      const el=e.target;
-      if(el.classList.contains("remove") && el.dataset.id){
-        const idRegistro=el.dataset.id;
-        if(!confirm("Tem certeza que deseja remover este registro?")) return;
-        await removerRegistro(idRegistro);
-      }
-    });
-
-    // CRUD Supabase
-    async function carregarFuncionarios(){
-      const { data, error } = await supabase.from("funcionarios").select("*").order("nome",{ascending:true});
-      if(error){console.error(error);showError("Erro ao carregar funcionários.");return;}
-      funcionarios = data || [];
-      renderFuncionarios();
-    }
-
-    async function carregarRegistros(){
-      const { data, error } = await supabase.from("registros").select("*").order("id",{ascending:true});
-      if(error){console.error(error);showError("Erro ao carregar registros.");return;}
-      const mapFunc = new Map(funcionarios.map(f=>[f.id,f.nome]));
-      pessoas = {};
-      (data||[]).forEach(r=>{
-        const nome = mapFunc.get(r.funcionario_id) || "(Desconhecido)";
-        const id = r.funcionario_id;
-        const chave = chavePessoa(nome,id);
-        if(!pessoas[chave]) pessoas[chave] = { nome, id, total: 0, registros: [] };
-        pessoas[chave].total += r.total;
-        pessoas[chave].registros.push({ id:r.id, h:r.horas, m:r.minutos, s:r.segundos, total:r.total });
-      });
-      renderTabela();
-    }
-
-    async function selecionarFuncionario(idx){
-      funcionarioSelecionado=idx;
-      renderFuncionarios();
-      renderRegistrosSelecionado();
-    }
-
-    async function adicionarFuncionario(){
-      const nome=(novoNomeEl.value||"").trim();
-      const id=(novoIdEl.value||"").trim();
-      if(!nome || !id){ alert("Informe nome e ID!"); return; }
-
-      const { data: existe, error: errCheck } = await supabase.from("funcionarios").select("id").eq("id",id).limit(1);
-      if(errCheck){ showError("Falha ao verificar duplicidade."); return; }
-      if(existe && existe.length>0){ alert("Já existe um funcionário com este ID."); return; }
-
-      const { error } = await supabase.from("funcionarios").insert([{ id, nome }]);
-      if(error){ alert("Erro ao salvar: " + error.message); return; }
-
-      novoNomeEl.value=""; novoIdEl.value="";
-      await carregarFuncionarios();
-      await carregarRegistros();
-    }
-
-    // Editar nome e ID com migração dos registros
-    async function editarFuncionario(idx){
-      const atual = funcionarios[idx];
-      const novoNome = prompt("Novo nome:", atual.nome);
-      if(novoNome===null) return;
-      const novoId = prompt("Novo ID:", atual.id);
-      if(novoId===null) return;
-
-      const nNome=(novoNome||"").trim();
-      const nId=(novoId||"").trim();
-      if(!nNome || !nId){ alert("Nome e ID não podem ficar vazios."); return; }
-
-      if(nId !== atual.id){
-        const { data: existe, error: errCheck } = await supabase.from("funcionarios").select("id").eq("id",nId).limit(1);
-        if(errCheck){ showError("Falha ao verificar duplicidade."); return; }
-        if(existe && existe.length>0){ alert("Já existe outro funcionário com este ID."); return; }
-      }
-
-      const { error: errFunc } = await supabase.from("funcionarios").update({ nome: nNome, id: nId }).eq("id", atual.id);
-      if(errFunc){ alert("Erro ao atualizar funcionário: " + errFunc.message); return; }
-
-      if(nId !== atual.id){
-        const { error: errRegs } = await supabase.from("registros").update({ funcionario_id: nId }).eq("funcionario_id", atual.id);
-        if(errRegs){ alert("Erro ao migrar registros: " + errRegs.message); return; }
-      }
-
-      await carregarFuncionarios();
-      await carregarRegistros();
-    }
-
-    async function removerFuncionario(idx){
-      const f = funcionarios[idx];
-      if(!confirm(`Remover ${f.nome} (ID: ${f.id})? Isto apagará seus registros.`)) return;
-
-      const { error } = await supabase.from("funcionarios").delete().eq("id", f.id);
-      if(error){ alert("Erro ao remover funcionário: " + error.message); return; }
-
-      if(funcionarioSelecionado===idx) funcionarioSelecionado=null;
-      else if(typeof funcionarioSelecionado==="number" && funcionarioSelecionado>idx) funcionarioSelecionado-=1;
-
-      await carregarFuncionarios();
-      await carregarRegistros();
-    }
-
-    async function adicionarRegistro(){
-      if(funcionarioSelecionado===null){ showError("Selecione um funcionário primeiro!"); return; }
-      const h=parseInt(horasEl.value||"0",10);
-      const m=parseInt(minutosEl.value||"0",10);
-      const s=parseInt(segundosEl.value||"0",10);
-
-      if(h===0 && m===0 && s===0){ showError("Não é permitido adicionar um registro em branco."); return; }
-      if([h,m,s].some(v=>Number.isNaN(v)||v<0)){ showError("Horas, minutos e segundos devem ser válidos (>= 0)."); return; }
-      if(m>59 || s>59){ showError("Minutos e segundos devem estar entre 0 e 59."); return; }
-
-      const f = funcionarios[funcionarioSelecionado];
-      const total = toSeconds(h,m,s);
-
-      const { error } = await supabase.from("registros").insert([{ funcionario_id: f.id, horas: h, minutos: m, segundos: s, total }]);
-      if(error){ showError("Erro ao salvar registro: " + error.message); return; }
-
-      horasEl.value=""; minutosEl.value=""; segundosEl.value="";
-      await carregarRegistros();
-    }
-
-    async function removerRegistro(idRegistro){
-      const { error } = await supabase.from("registros").delete().eq("id", idRegistro);
-      if(error){ alert("Erro ao remover registro: " + error.message); return; }
-      await carregarRegistros();
-    }
-
-    async function limparRegistrosFuncionario(funcionarioId, nome){
-      if(!confirm(`Deseja limpar TODOS os registros de ${nome} (ID: ${funcionarioId})? Esta ação não pode ser desfeita.`)) return;
-      const { error } = await supabase.from("registros").delete().eq("funcionario_id", funcionarioId);
-      if(error){ alert("Erro ao limpar registros: " + error.message); return; }
-      await carregarRegistros();
-    }
-
-    async function limparRegistrosTodos(){
-      if(!confirm("Deseja limpar TODOS os registros de TODOS os funcionários? Esta ação não pode ser desfeita.")) return;
-      const { error } = await supabase.from("registros").delete().neq("id", 0);
-      if(error){ alert("Erro ao limpar todos os registros: " + error.message); return; }
-      await carregarRegistros();
-    }
-
-    function ordenarTabela(){
-      const lista = Object.values(pessoas).sort((a,b)=>b.total - a.total);
-      // Render apenas visual (não altera estado pessoas)
-      tabelaBodyEl.innerHTML="";
-      if(lista.length===0){
-        tabelaBodyEl.innerHTML=`<tr><td colspan="4" class="muted">Sem registros.</td></tr>`;
-      } else {
-        lista.forEach(p=>{
-          const tr=document.createElement("tr");
-          tr.innerHTML=`<td>${p.nome}</td><td>${p.id}</td><td><span class="badge">${fmtHMS(p.total)}</span></td><td>${p.total}</td>`;
-          tabelaBodyEl.appendChild(tr);
-        });
-      }
-      renderRanking(lista);
-    }
-
-    // Eventos
-    document.getElementById("btnAddFuncionario").addEventListener("click", adicionarFuncionario);
-    document.getElementById("btnAddRegistro").addEventListener("click", adicionarRegistro);
-    document.getElementById("btnOrdenar").addEventListener("click", ordenarTabela);
-    document.getElementById("btnLimparTodos").addEventListener("click", limparRegistrosTodos);
-
-    // Init
-    document.addEventListener("DOMContentLoaded", async ()=>{
-      await carregarFuncionarios();
-      await carregarRegistros();
-    });
-  </script>
-</body>
-</html>
+        <h3>Registros do Funcionário Selecionado
