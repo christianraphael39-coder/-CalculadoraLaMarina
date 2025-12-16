@@ -9,29 +9,30 @@
   <style>
     :root {
       --bg: #0b0b0b; --panel: #121212; --border: #1e1e1e;
-      --text: #e9e9e9; --muted: #9a9a9a; --accent: #4f74ff;
+      --text: #e9e9e9; --muted: #9a9a9a;
       --green: #2ecc71; --blue: #3b82f6; --orange: #f59e0b; --red: #ef4444;
     }
     * { box-sizing: border-box; }
     body { margin:0; background:var(--bg); color:var(--text); font-family: Arial, sans-serif; }
     h1,h3 { margin:0 0 12px; }
-    .layout { display:flex; min-height:100vh; }
 
-    /* Sidebar à esquerda */
+    .layout { display:flex; min-height:100vh; }
     .sidebar { flex:1; padding:16px; background:var(--panel); border-right:1px solid var(--border); }
     .main { flex:3; padding:20px; }
 
     .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:18px; }
     .row { display:flex; gap:10px; flex-wrap:wrap; }
     .col { flex:1; min-width:160px; }
-    input { width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:#0e0e0e; color:var(--text); }
+
+    input, select { width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:#0e0e0e; color:var(--text); }
     input::placeholder { color:#7a7a7a; }
+
     .btn { padding:10px 14px; border-radius:10px; border:1px solid var(--border); background:#151515; color:var(--text); cursor:pointer; }
     .btn.primary { background:var(--green); border-color:var(--green); color:#0b0b0b; }
     .btn.blue { background:var(--blue); border-color:var(--blue); color:#0b0b0b; }
     .btn.red { background:var(--red); border-color:var(--red); color:#0b0b0b; }
 
-    /* Chips da sidebar */
+    /* Chips de funcionários */
     .chip { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 8px; border-radius:999px; background:#151515; border:1px solid var(--border); margin:6px 0; cursor:pointer; font-size:13px; }
     .chip.selected { background:var(--green); color:#0b0b0b; border-color:var(--green); }
     .chip .label { font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -39,6 +40,13 @@
     .mini-btn { padding:3px 8px; border-radius:8px; font-size:11px; border:1px solid var(--border); background:#1a1a1a; color:var(--text); cursor:pointer; }
     .mini-btn.orange { background:var(--orange); color:#0b0b0b; border-color:var(--orange); }
     .mini-btn.red { background:var(--red); color:#0b0b0b; border-color:var(--red); }
+
+    /* Lista de responsáveis */
+    .resp-list { display:flex; flex-direction:column; gap:8px; }
+    .resp-item { display:flex; align-items:center; justify-content:space-between; background:#151515; border:1px solid var(--border); border-radius:10px; padding:8px 10px; }
+    .resp-item .name { font-weight:600; }
+    .resp-item .badge { padding:4px 8px; border-radius:999px; border:1px solid var(--border); background:#1a1a1a; font-size:12px; }
+    .resp-item .remove { color:#ef4444; cursor:pointer; font-weight:700; }
 
     /* Tabela e registros */
     table { width:100%; border-collapse:collapse; overflow:hidden; border-radius:12px; }
@@ -57,15 +65,17 @@
 
     .error { color:#ef4444; font-size:13px; margin-top:8px; }
     .muted { color:var(--muted); font-size:13px; }
+    hr { border:0; border-top:1px solid var(--border); margin:18px 0; }
   </style>
 </head>
 <body>
   <div class="layout">
     <!-- Sidebar à esquerda -->
     <div class="sidebar">
-      <h3>Funcionários</h3>
+      <h3>Funcionários (<span id="contadorFuncionarios">0</span>)</h3>
       <div id="listaFuncionarios"></div>
-      <div style="margin-top:12px;" class="row">
+
+      <div class="row" style="margin-top:12px;">
         <div class="col"><input id="novoNome" type="text" placeholder="Nome"></div>
         <div class="col"><input id="novoId" type="text" placeholder="ID"></div>
       </div>
@@ -73,7 +83,23 @@
         <div class="col" style="flex:0 0 auto;"><button class="btn primary" id="btnAddFuncionario">Adicionar</button></div>
         <div class="col" style="flex:0 0 auto;"><button class="btn red" id="btnLimparTodos">Limpar TODOS</button></div>
       </div>
-      <p class="muted" style="margin-top:8px;">Use “Editar” para alterar nome/ID. “Limpar” apaga registros do funcionário.</p>
+      <p class="muted" style="margin-top:8px;">“Editar” altera nome/ID e migra registros. “Limpar” apaga registros do funcionário.</p>
+
+      <hr />
+      <h3>Donos e Gerentes</h3>
+      <div id="listaResponsaveis" class="resp-list"></div>
+      <div class="row" style="margin-top:12px;">
+        <div class="col"><input id="novoResponsavelNome" type="text" placeholder="Nome do responsável"></div>
+        <div class="col">
+          <select id="novoResponsavelCargo">
+            <option value="Dono">Dono</option>
+            <option value="Gerente">Gerente</option>
+          </select>
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <div class="col" style="flex:0 0 auto;"><button class="btn primary" id="btnAddResponsavel">Adicionar responsável</button></div>
+      </div>
     </div>
 
     <!-- Main à direita -->
@@ -87,7 +113,7 @@
           <div class="col"><input id="minutos" type="number" min="0" max="59" placeholder="Minutos"></div>
           <div class="col"><input id="segundos" type="number" min="0" max="59" placeholder="Segundos"></div>
           <div style="align-self:end;"><button class="btn primary" id="btnAddRegistro">Registrar</button></div>
-          <div style="align-self:end;"><button class="btn blue" id="btnOrdenar">Ordenar</button></div>
+          <div style="align-self:end;"><button class="btn blue" id="btnOrdenar">Ordenar por total</button></div>
         </div>
         <div id="msgErro" class="error" style="display:none;"></div>
       </div>
@@ -112,7 +138,7 @@
   </div>
 
   <script>
-    // Cliente Supabase
+    // Supabase client
     const supabase = window.supabase.createClient(
       "https://pldamguukjeuakrvfbzf.supabase.co",
       "sb_publishable_UybNTjqz8fdbDLFhxJvO5Q_78P0AM6Y"
@@ -122,6 +148,7 @@
     let funcionarios = [];
     let pessoas = {};
     let funcionarioSelecionado = null;
+    let responsaveis = [];
 
     // Utils
     const chavePessoa = (nome,id)=>`${nome}::${id}`;
@@ -130,6 +157,7 @@
 
     // DOM refs
     const listaFuncionariosEl=document.getElementById("listaFuncionarios");
+    const contadorFuncionariosEl=document.getElementById("contadorFuncionarios");
     const tabelaBodyEl=document.getElementById("tabelaBody");
     const registrosArea=document.getElementById("registrosArea");
     const rankList=document.getElementById("rankList");
@@ -140,19 +168,26 @@
     const segundosEl=document.getElementById("segundos");
     const msgErroEl=document.getElementById("msgErro");
 
+    const listaResponsaveisEl=document.getElementById("listaResponsaveis");
+    const novoResponsavelNomeEl=document.getElementById("novoResponsavelNome");
+    const novoResponsavelCargoEl=document.getElementById("novoResponsavelCargo");
+
     function showError(msg){
       msgErroEl.textContent=msg;
       msgErroEl.style.display="block";
       setTimeout(()=>{msgErroEl.style.display="none";},3000);
     }
 
-    // Render sidebar de funcionários
+    // ---------- Funcionários ----------
     function renderFuncionarios(){
       listaFuncionariosEl.innerHTML="";
+      contadorFuncionariosEl.textContent = funcionarios.length;
+
       if(funcionarios.length===0){
         listaFuncionariosEl.innerHTML="<p class='muted'>Nenhum funcionário cadastrado.</p>";
         return;
       }
+
       funcionarios.forEach((f,idx)=>{
         const chip=document.createElement("div");
         chip.className="chip"+(funcionarioSelecionado===idx?" selected":"");
@@ -191,7 +226,6 @@
       });
     }
 
-    // Render tabela e ranking
     function renderTabela(){
       tabelaBodyEl.innerHTML="";
       const dados = Object.values(pessoas);
@@ -224,7 +258,6 @@
       });
     }
 
-    // Área separada: registros do funcionário selecionado
     function renderRegistrosSelecionado(){
       registrosArea.innerHTML="";
       if(funcionarioSelecionado===null){
@@ -263,17 +296,16 @@
       });
     }
 
-    // CRUD Supabase
     async function carregarFuncionarios(){
       const { data, error } = await supabase.from("funcionarios").select("*").order("nome",{ascending:true});
-      if(error){console.error(error);showError("Erro ao carregar funcionários.");return;}
+      if(error){ console.error(error); showError("Erro ao carregar funcionários."); return; }
       funcionarios = data || [];
       renderFuncionarios();
     }
 
     async function carregarRegistros(){
       const { data, error } = await supabase.from("registros").select("*").order("id",{ascending:true});
-      if(error){console.error(error);showError("Erro ao carregar registros.");return;}
+      if(error){ console.error(error); showError("Erro ao carregar registros."); return; }
       const mapFunc = new Map(funcionarios.map(f=>[f.id,f.nome]));
       pessoas = {};
       (data||[]).forEach(r=>{
@@ -408,16 +440,82 @@
       renderRanking(lista);
     }
 
+    // ---------- Donos e Gerentes ----------
+    function renderResponsaveis(){
+      listaResponsaveisEl.innerHTML="";
+      if(!responsaveis || responsaveis.length===0){
+        listaResponsaveisEl.innerHTML = "<div class='muted'>Nenhum responsável cadastrado.</div>";
+        return;
+      }
+      responsaveis.forEach(r=>{
+        const item=document.createElement("div");
+        item.className="resp-item";
+
+        const left=document.createElement("div");
+        const name=document.createElement("span");
+        name.className="name";
+        name.textContent=r.nome;
+
+        const cargo=document.createElement("span");
+        cargo.className="badge";
+        cargo.textContent=r.cargo;
+
+        left.appendChild(name);
+        left.appendChild(document.createTextNode(" "));
+        left.appendChild(cargo);
+
+        const remove=document.createElement("span");
+        remove.className="remove";
+        remove.textContent="Remover";
+        remove.addEventListener("click", async ()=>{
+          await removerResponsavel(r.id);
+        });
+
+        item.appendChild(left);
+        item.appendChild(remove);
+        listaResponsaveisEl.appendChild(item);
+      });
+    }
+
+    async function carregarResponsaveis(){
+      const { data, error } = await supabase.from("responsaveis").select("*").order("id",{ascending:true});
+      if(error){ console.error(error); showError("Erro ao carregar responsáveis."); responsaveis=[]; }
+      else { responsaveis = data || []; }
+      renderResponsaveis();
+    }
+
+    async function adicionarResponsavel(){
+      const nome=(novoResponsavelNomeEl.value||"").trim();
+      const cargo=(novoResponsavelCargoEl.value||"").trim();
+      if(!nome || !cargo){ alert("Informe nome e cargo!"); return; }
+
+      const { error } = await supabase.from("responsaveis").insert([{ nome, cargo }]);
+      if(error){ alert("Erro ao salvar responsável: " + error.message); return; }
+
+      novoResponsavelNomeEl.value="";
+      novoResponsavelCargoEl.value="Dono";
+      await carregarResponsaveis();
+    }
+
+    async function removerResponsavel(id){
+      const { error } = await supabase.from("responsaveis").delete().eq("id", id);
+      if(error){ alert("Erro ao remover responsável: " + error.message); return; }
+      await carregarResponsaveis();
+    }
+
     // Eventos
     document.getElementById("btnAddFuncionario").addEventListener("click", adicionarFuncionario);
     document.getElementById("btnAddRegistro").addEventListener("click", adicionarRegistro);
     document.getElementById("btnOrdenar").addEventListener("click", ordenarTabela);
     document.getElementById("btnLimparTodos").addEventListener("click", limparRegistrosTodos);
 
+    document.getElementById("btnAddResponsavel").addEventListener("click", adicionarResponsavel);
+
     // Init
     document.addEventListener("DOMContentLoaded", async ()=>{
       await carregarFuncionarios();
       await carregarRegistros();
+      await carregarResponsaveis();
     });
   </script>
 </body>
